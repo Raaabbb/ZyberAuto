@@ -1,0 +1,1326 @@
+================================================================================
+ZYBERAUTO - DETAILED STEP-BY-STEP PHASING
+Auto Service Management System
+ALWAYS UPDATE THIS IN EVERY CHANGES
+================================================================================
+Generated: January 29, 2026
+
+DEVELOPMENT APPROACH:
+Each feature follows a 3-step pattern:
+  Step A: UI Layout (Static screens, no functionality)
+  Step B: Interactivity (Button clicks, navigation, form validation)
+  Step C: Data Integration (ViewModels, Repositories, State management)
+
+================================================================================
+================================================================================
+STAGE 1: PROJECT FOUNDATION
+================================================================================
+================================================================================
+
+------------------------------------------------------------------------------
+1.1 PROJECT SETUP
+------------------------------------------------------------------------------
+
+STEP 1.1.A - Create Base Project Structure
+    Tasks:
+    [x] Create new Android project in Android Studio
+    [x] Set applicationId: com.example.zyberauto
+    [x] Set minSdk: 26, targetSdk: 34
+    [x] Choose "Empty Compose Activity" template
+    [x] Verify project builds successfully
+
+STEP 1.1.B - Add Dependencies
+    Tasks:
+    [x] Open build.gradle.kts (app level)
+    [x] Add Jetpack Compose BOM
+    [x] Add Navigation Compose dependency
+    [x] Add Hilt dependency (for future DI)
+    [x] Add Material3 dependency
+    [x] Add DataStore preferences dependency
+    [x] Add Coroutines dependency
+    [x] Sync Gradle and verify no errors
+
+STEP 1.1.C - Create Package Structure
+    Tasks:
+    [x] Create package: data/model
+    [x] Create package: data/repository
+    [x] Create package: data/local
+    [x] Create package: domain/model
+    [x] Create package: domain/repository
+    [x] Create package: domain/usecase
+    [x] Create package: presentation/auth
+    [x] Create package: presentation/customer
+    [x] Create package: presentation/secretary
+    [x] Create package: presentation/common
+    [x] Create package: presentation/navigation
+    [x] Create package: di
+    [x] Create package: util
+
+------------------------------------------------------------------------------
+1.2 THEME SETUP
+------------------------------------------------------------------------------
+
+STEP 1.2.A - Define Color Palette
+    Tasks:
+    [x] Open ui/theme/Color.kt
+    [x] Define primary color (brand color)
+    [x] Define secondary color
+    [x] Define background colors (light/dark)
+    [x] Define surface colors
+    [x] Define status colors:
+        - PendingYellow
+        - AcceptedGreen
+        - RejectedRed
+        - NewBlue
+        - RepliedGray
+    [x] Define text colors (primary, secondary, disabled)
+
+STEP 1.2.B - Define Typography
+    Tasks:
+    [x] Open ui/theme/Type.kt
+    [x] Define heading styles (h1, h2, h3)
+    [x] Define body text styles
+    [x] Define button text style
+    [x] Define caption/label styles
+    [x] Choose font family (default or custom)
+
+STEP 1.2.C - Define Shape & Theme
+    Tasks:
+    [x] Open ui/theme/Theme.kt
+    [x] Define shape corners (small, medium, large)
+    [x] Create light color scheme
+    [x] Create dark color scheme (optional for now)
+    [x] Apply theme to MaterialTheme composable
+
+------------------------------------------------------------------------------
+1.3 COMMON UI COMPONENTS
+------------------------------------------------------------------------------
+
+STEP 1.3.A - Create Basic Components (UI Only)
+    Tasks:
+    [x] Create file: presentation/common/components/AppButton.kt
+        - Primary button composable
+        - Secondary/outlined button variant
+    [x] Create file: presentation/common/components/AppTextField.kt
+        - Text field with label
+        - Password field with visibility toggle
+    [x] Create file: presentation/common/components/LoadingSpinner.kt
+        - Centered circular progress indicator
+    [x] Create file: presentation/common/components/StatusBadge.kt
+        - Colored badge with text
+        - Support for different status types
+
+STEP 1.3.B - Create Dialog Components (UI Only)
+    Tasks:
+    [x] Create file: presentation/common/components/ConfirmDialog.kt
+        - Title, message, confirm/cancel buttons
+    [x] Create file: presentation/common/components/ErrorDialog.kt
+        - Error icon, message, dismiss button
+    [x] Create file: presentation/common/components/SuccessDialog.kt
+        - Success icon, message, dismiss button
+
+STEP 1.3.C - Create Form Components (UI Only)
+    Tasks:
+    [x] Create file: presentation/common/components/DatePickerField.kt
+        - Text field that opens date picker
+    [x] Create file: presentation/common/components/TimePickerField.kt
+        - Text field that opens time picker
+    [x] Create file: presentation/common/components/DropdownField.kt
+        - Dropdown menu with options
+    [x] Create file: presentation/common/components/SearchBar.kt
+        - Search icon, text input, clear button
+    [x] Create file: presentation/common/components/FilterChips.kt
+        - Horizontal row of filter chips
+
+STEP 1.3.D - Add Interactivity to Components
+    Tasks:
+    [x] AppButton: Add onClick parameter, loading state
+    [x] AppTextField: Add onValueChange, error state display
+    [x] StatusBadge: Add status enum parameter for color selection
+    [x] ConfirmDialog: Add onConfirm, onDismiss callbacks
+    [x] DatePickerField: Implement date picker dialog trigger
+    [x] TimePickerField: Implement time picker dialog trigger
+    [x] DropdownField: Implement expanded state, selection callback
+    [x] SearchBar: Add onSearch callback, clear functionality
+    [x] FilterChips: Add selected state, onSelect callback
+
+================================================================================
+================================================================================
+STAGE 2: AUTHENTICATION MODULE
+================================================================================
+================================================================================
+
+------------------------------------------------------------------------------
+2.1 LOGIN SCREEN
+------------------------------------------------------------------------------
+
+STEP 2.1.A - Login Screen UI Layout
+    Tasks:
+    [x] Create file: presentation/auth/LoginScreen.kt
+    [x] Design two-panel layout:
+        - Left panel: App logo, branding text, tagline
+        - Right panel: Login form
+    [x] Add username text field
+    [x] Add password text field with visibility toggle icon
+    [x] Add "Sign In" button (full width)
+    [x] Add "Don't have an account? Register here" text link
+    [x] Add "Forgot Password?" text link (Functional Dialog)
+    [x] Style according to theme colors
+    [x] Test on different screen sizes
+
+STEP 2.1.B - Login Screen Interactivity
+    Tasks:
+    [x] Add state variables:
+        - username: String
+        - password: String
+        - isPasswordVisible: Boolean
+        - isLoading: Boolean
+    [x] Implement password visibility toggle
+    [x] Add form validation:
+        - Username not empty
+        - Password not empty
+    [x] Show validation errors inline
+    [x] Disable button during loading
+    [x] Navigate to RegisterScreen on "Register here" click
+    [x] Show loading spinner on sign in click
+
+STEP 2.1.C - Login Screen Data Integration
+    Tasks:
+    [x] Create file: presentation/auth/AuthViewModel.kt
+    [x] Create sealed class: AuthUiState
+        - Idle, Loading, Success(user), Error(message)
+    [x] Create data class: LoginCredentials
+    [x] Implement login function in ViewModel
+    [x] Connect LoginScreen to AuthViewModel
+    [x] Observe login state and react:
+        - Success → Navigate based on role
+        - Error → Show error dialog
+    [x] Handle role-based navigation:
+        - Customer → CustomerBookingsScreen
+        - Secretary → SecretaryDashboardScreen
+    [x] Check for default password → ChangePasswordScreen
+
+------------------------------------------------------------------------------
+2.2 REGISTRATION SCREEN
+------------------------------------------------------------------------------
+
+STEP 2.2.A - Registration Screen UI Layout
+    Tasks:
+    [x] Create file: presentation/auth/RegisterScreen.kt
+    [x] Design similar two-panel layout as login
+    [x] Add username text field
+    [x] Add password text field with visibility toggle
+    [x] Add confirm password text field
+    [x] Add "Register" button
+    [x] Add "Already have an account? Sign In" link
+    [x] Style consistently with login screen
+
+STEP 2.2.B - Registration Screen Interactivity
+    Tasks:
+    [x] Add state variables:
+        - username: String
+        - password: String
+        - confirmPassword: String
+        - isPasswordVisible: Boolean
+        - isConfirmPasswordVisible: Boolean
+    [x] Implement password visibility toggles
+    [x] Add form validation:
+        - Username not empty, min 3 characters
+        - Password min 8 characters
+        - Passwords must match
+    [x] Show validation errors inline
+    [x] Navigate to LoginScreen on "Sign In" click
+
+STEP 2.2.C - Registration Screen Data Integration
+    Tasks:
+    [x] Add register function to AuthViewModel
+    [x] Create data class: RegistrationData
+    [x] Implement role assignment logic:
+        - If username contains "secretary" → role = SECRETARY
+        - Otherwise → role = CUSTOMER
+    [x] Connect RegisterScreen to AuthViewModel
+    [x] On success → Show success dialog → Navigate to login
+    [x] On error → Show error dialog
+
+------------------------------------------------------------------------------
+2.3 CHANGE PASSWORD SCREEN
+------------------------------------------------------------------------------
+
+STEP 2.3.A - Forgot Password & Verification Setup
+    Tasks:
+    [x] Implement "Forgot Password" Dialog in LoginScreen
+    [x] Wire up sendPasswordResetEmail in AuthViewModel
+    [x] Implement Email Verification requirement in LoginScreen
+    [x] Add isVerified field to User model (standardized)
+    [x] Verify email flow (Firebase Native)
+
+STEP 2.3.B - Change Password Screen (In-App)
+    Info: This feature is deferred in favor of Forgot Password flow for now.
+    Tasks:
+    [ ] Create file: presentation/auth/ChangePasswordScreen.kt
+    [ ] Add header: "Change Your Password"
+    [ ] Add new password fields
+    [ ] Add "Update Password" button
+
+STEP 2.3.C - Change Password Data Integration
+    Tasks:
+    [ ] Add changePassword function to AuthViewModel
+    [ ] Authenticate with current credentials before change
+
+------------------------------------------------------------------------------
+2.4 LOGOUT FUNCTIONALITY
+------------------------------------------------------------------------------
+
+STEP 2.4.A - Logout Dialog UI
+    Tasks:
+    [ ] Create file: presentation/auth/LogoutDialog.kt
+    [ ] Design confirmation dialog:
+        - Icon (logout icon)
+        - Title: "Log Out"
+        - Message: "Are you sure you want to log out?"
+        - "Yes, Log Out" button (destructive color)
+        - "Cancel" button (secondary)
+
+STEP 2.4.B - Logout Dialog Interactivity
+    Tasks:
+    [ ] Add onConfirm callback parameter
+    [ ] Add onDismiss callback parameter
+    [ ] Wire up button clicks
+
+STEP 2.4.C - Logout Data Integration
+    Tasks:
+    [ ] Add logout function to AuthViewModel
+    [ ] Clear session from DataStore
+    [ ] Navigate to LoginScreen
+    [ ] Clear navigation back stack
+
+------------------------------------------------------------------------------
+2.5 SESSION MANAGEMENT
+------------------------------------------------------------------------------
+
+STEP 2.5.C - Session Data Layer (No UI needed)
+    Tasks:
+    [ ] Create file: data/local/SessionManager.kt
+    [ ] Use DataStore to store:
+        - isLoggedIn: Boolean
+        - userId: Int
+        - username: String
+        - role: String
+    [ ] Implement saveSession function
+    [ ] Implement getSession function (returns Flow)
+    [ ] Implement clearSession function
+    [ ] Implement isLoggedIn check
+
+================================================================================
+================================================================================
+STAGE 3: NAVIGATION SETUP
+================================================================================
+================================================================================
+
+------------------------------------------------------------------------------
+3.1 NAVIGATION ROUTES
+------------------------------------------------------------------------------
+
+STEP 3.1.C - Define Routes (No UI needed)
+    Tasks:
+    [x] Create file: presentation/navigation/Routes.kt
+    [x] Create sealed class Route with:
+        - Login
+        - Register
+        - ChangePassword
+        - CustomerBookings
+        - CustomerNewBooking
+        - CustomerBookingConfirmation
+        - CustomerComplaints
+        - CustomerFileComplaint
+        - CustomerSettings
+        - SecretaryDashboard
+        - SecretaryBookingRequests
+        - SecretaryBookingDetails(id)
+        - SecretaryAppointments
+        - SecretaryWalkIn
+        - SecretaryCustomers
+        - SecretaryInquiries
+        - SecretaryInventory
+        - SecretaryReports
+
+------------------------------------------------------------------------------
+3.2 NAVIGATION GRAPH
+------------------------------------------------------------------------------
+
+STEP 3.2.C - Implement NavHost
+    Tasks:
+    [x] Create file: presentation/navigation/AppNavigation.kt
+    [x] Set up NavController
+    [x] Create NavHost with all routes
+    [x] Define startDestination based on session state:
+        - Not logged in → Login
+        - Logged in as Customer → CustomerBookings
+        - Logged in as Secretary → SecretaryDashboard
+    [x] Pass NavController to screens that need navigation
+
+------------------------------------------------------------------------------
+3.3 CUSTOMER NAVIGATION SHELL
+------------------------------------------------------------------------------
+
+STEP 3.3.A - Customer Shell UI Layout
+    Tasks:
+    [x] Create file: presentation/customer/CustomerShell.kt
+    [x] Design layout with:
+        - Top app bar with "Customer Portal" title
+        - User initials/avatar on right
+        - Left sidebar or bottom navigation with:
+            * My Bookings (icon + text)
+            * My Complaints (icon + text)
+            * File Complaint (icon + text)
+            * Settings (icon + text)
+            * Log Out (icon + text)
+        - Content area for nested screens
+
+STEP 3.3.B - Customer Shell Interactivity
+    Tasks:
+    [x] Track selected navigation item
+    [x] Highlight current selection
+    [x] Handle navigation item clicks
+    [x] Show logout confirmation dialog on logout click
+
+STEP 3.3.C - Customer Shell Data Integration
+    Tasks:
+    [x] Get current user from session
+    [x] Display user initials from username
+    [x] Wire up logout to AuthViewModel
+    [x] Set up nested navigation for customer screens
+
+------------------------------------------------------------------------------
+3.4 SECRETARY NAVIGATION SHELL
+------------------------------------------------------------------------------
+
+STEP 3.4.A - Secretary Shell UI Layout
+    Tasks:
+    [x] Create file: presentation/secretary/SecretaryShell.kt
+    [x] Design layout with:
+        - Collapsible left drawer navigation
+        - Drawer items:
+            * Dashboard
+            * Appointments
+            * Customers
+            * Booking Requests
+            * Inquiries
+            * Reports
+            * Inventory
+            * Log Out
+        - Content area for nested screens
+        - Hamburger menu icon to toggle drawer
+
+STEP 3.4.B - Secretary Shell Interactivity
+    Tasks:
+    [x] Track drawer open/closed state
+    [x] Track selected navigation item
+    [x] Handle drawer item clicks
+    [x] Auto-close drawer after selection (on mobile)
+    [x] Show logout confirmation on logout click
+
+STEP 3.4.C - Secretary Shell Data Integration
+    Tasks:
+    [x] Get current user from session
+    [x] Wire up logout to AuthViewModel
+    [x] Set up nested navigation for secretary screens
+
+================================================================================
+================================================================================
+STAGE 4: CUSTOMER PORTAL - BOOKINGS
+================================================================================
+================================================================================
+
+------------------------------------------------------------------------------
+4.1 MY BOOKINGS SCREEN
+------------------------------------------------------------------------------
+
+STEP 4.1.A - My Bookings Screen UI Layout
+    Tasks:
+    [x] Create file: presentation/customer/bookings/CustomerBookingsScreen.kt
+    [x] Add screen title: "My Bookings"
+    [x] Add "NEW BOOKING" FAB or button (top right)
+    [x] Create booking card design:
+        - Order number (header)
+        - Vehicle: Make Model - Plate
+        - Service: Service name
+        - Schedule: Date, Time slot
+        - Status badge (colored)
+        - Bill amount
+    [x] Create empty state: "No bookings yet" with illustration
+    [x] Design scrollable list of booking cards
+
+STEP 4.1.B - My Bookings Screen Interactivity
+    Tasks:
+    [x] Add navigation to NewBookingScreen on FAB click
+    [x] Add tap handler on booking card (expand details or show modal)
+    [x] Show rejection reason if status is Rejected
+    [x] Implement pull-to-refresh gesture
+
+STEP 4.1.C - My Bookings Screen Data Integration
+    Tasks:
+    [x] Create file: presentation/customer/bookings/CustomerBookingsViewModel.kt
+    [x] Create UI state class for bookings list
+    [x] Load bookings for current user from repository
+    [x] Implement status mapping:
+        - "In Progress" → display "Accepted"
+        - "Waiting on Parts" → display "Rejected"
+    [x] Connect screen to ViewModel
+    [x] Handle loading and error states
+
+------------------------------------------------------------------------------
+4.2 NEW BOOKING SCREEN
+------------------------------------------------------------------------------
+
+STEP 4.2.A - New Booking Screen UI Layout
+    Tasks:
+    [x] Create file: presentation/customer/bookings/NewBookingScreen.kt
+    [x] Add back navigation arrow
+    [x] Add screen title: "New Booking"
+    [x] Create form sections with headers:
+    
+        Section: Vehicle Information
+        [x] Brand dropdown (Toyota, Honda, Ford, etc.)
+        [x] Model/Type text field
+        [x] Plate number text field
+        
+        Section: Service Details
+        [x] Service type dropdown (Oil Change, Tire Rotation, etc.)
+        
+        Section: Preferred Schedule
+        [x] Date picker field
+        [x] Time slot dropdown (Morning, Afternoon, Evening)
+        
+        Section: Additional Notes
+        [x] Multiline text field
+        
+    [x] Add "Submit Booking" button at bottom
+
+STEP 4.2.B - New Booking Screen Interactivity
+    Tasks:
+    [x] Add state for each form field
+    [x] Implement dropdown selections
+    [x] Implement date picker dialog
+    [x] Add form validation:
+        - Brand required
+        - Model required
+        - Plate required
+        - Service required
+        - Date required
+        - Time slot required
+    [x] Show inline validation errors
+    [x] Show confirmation dialog before submit
+    [x] Disable submit during loading
+
+STEP 4.2.C - New Booking Screen Data Integration
+    Tasks:
+    [x] Create file: presentation/customer/bookings/NewBookingViewModel.kt
+    [x] Create data class for new booking form
+    [x] Implement submit booking function
+    [x] Generate order number
+    [x] Save to mock repository
+    [x] On success → Navigate to confirmation screen
+    [x] Pass booking data to confirmation
+
+------------------------------------------------------------------------------
+4.3 BOOKING CONFIRMATION SCREEN
+------------------------------------------------------------------------------
+
+STEP 4.3.A - Booking Confirmation Screen UI Layout
+    Tasks:
+    [x] Create file: presentation/customer/bookings/BookingConfirmationScreen.kt
+    [x] Add success icon/illustration at top
+    [x] Add title: "Booking Submitted!"
+    [x] Create confirmation card:
+        - Confirmation Number: #ORDER123
+        - Date Submitted: January 29, 2026
+        - Vehicle: Toyota Camry - ABC 123
+        - Service: Oil Change
+        - Preferred Date: February 1, 2026
+        - Time Slot: Morning
+    [x] Add "Back to My Bookings" button
+
+STEP 4.3.B - Booking Confirmation Screen Interactivity
+    Tasks:
+    [x] Receive booking data from navigation arguments
+    [x] Display confirmation details from arguments
+    [x] Navigate back to bookings list on button click
+    [x] Clear back stack to prevent back to form
+
+STEP 4.3.C - Booking Confirmation Screen Data Integration
+    Tasks:
+    [x] (Minimal - mostly display only)
+    [x] Format date for display
+    [x] Could optionally fetch latest booking from repository
+
+------------------------------------------------------------------------------
+4.4 MOCK BOOKING REPOSITORY
+------------------------------------------------------------------------------
+
+STEP 4.4.C - Mock Data Layer
+    Status: DEPRECATED / REPLACED
+    Tasks:
+    [x] Create file: domain/model/Booking.kt
+    [x] Create file: domain/model/BookingStatus.kt
+    [x] Create file: domain/repository/IBookingRepository.kt
+    [x] Replaced MockBookingRepository with AppointmentsRepositoryImpl (Firestore)
+    [x] Seed Initial Data (REMOVED - Now pure real-time data)
+
+================================================================================
+================================================================================
+STAGE 5: CUSTOMER PORTAL - COMPLAINTS
+================================================================================
+================================================================================
+
+------------------------------------------------------------------------------
+5.1 FILE COMPLAINT SCREEN
+------------------------------------------------------------------------------
+
+STEP 5.1.A - File Complaint Screen UI Layout
+    Tasks:
+    [x] Create file: presentation/customer/complaints/FileComplaintScreen.kt
+    [x] Add screen title: "File a Complaint"
+    [x] Add subject text field (single line)
+    [x] Add message text area (multiline, 5+ lines visible)
+    [x] Add character counter for message
+    [x] Add "Submit Complaint" button
+    [x] Style with appropriate spacing
+
+STEP 5.1.B - File Complaint Screen Interactivity
+    Tasks:
+    [x] Add state for subject and message
+    [x] Validate:
+        - Subject not empty
+        - Message not empty, min 20 characters
+    [x] Show confirmation dialog before submit:
+        - "Are you sure you want to submit this complaint?"
+    [x] Show success dialog after submit
+    [x] Clear form after successful submit
+
+STEP 5.1.C - File Complaint Screen Data Integration
+    Tasks:
+    [x] Create file: presentation/customer/complaints/FileComplaintViewModel.kt
+    [x] Implement submitComplaint function
+    [x] Add complaint to repository with status "NEW"
+    [x] Add timestamp
+    [x] Handle success/error states
+    [x] Navigate to complaints list on success
+
+------------------------------------------------------------------------------
+5.2 MY COMPLAINTS SCREEN
+------------------------------------------------------------------------------
+
+STEP 5.2.A - My Complaints Screen UI Layout
+    Tasks:
+    [x] Create file: presentation/customer/complaints/CustomerComplaintsScreen.kt
+    [x] Add screen title: "My Complaints"
+    [x] Create complaint card design:
+        - Subject (header, bold)
+        - Status badge (New = blue, Replied = green)
+        - Submitted date
+        - Preview of message (truncated)
+        - If replied:
+            * Divider
+            * "Reply from Staff:" label
+            * Reply text
+            * Reply date
+    [x] Create empty state: "No complaints filed"
+    [x] Add scrollable list
+
+STEP 5.2.B - My Complaints Screen Interactivity
+    Tasks:
+    [x] Add expand/collapse for long messages
+    [x] Tap card to view full details (optional modal)
+    [x] Implement pull-to-refresh
+
+STEP 5.2.C - My Complaints Screen Data Integration
+    Tasks:
+    [x] Create file: presentation/customer/complaints/CustomerComplaintsViewModel.kt
+    [x] Load complaints for current user
+    [x] Sort by date (newest first)
+    [x] Connect screen to ViewModel
+    [x] Handle loading/error states
+
+------------------------------------------------------------------------------
+5.3 MOCK COMPLAINT REPOSITORY
+------------------------------------------------------------------------------
+
+STEP 5.3.C - Mock Data Layer
+    Status: DEPRECATED / REPLACED
+    Tasks:
+    [x] Create file: domain/model/Complaint.kt
+    [x] Create file: domain/model/ComplaintStatus.kt
+    [x] Create file: domain/repository/IComplaintRepository.kt
+    [x] Replaced MockComplaintRepository with ComplaintsRepositoryImpl (Firestore)
+    [x] Seed Initial Data (REMOVED)
+
+================================================================================
+================================================================================
+STAGE 6: CUSTOMER PORTAL - SETTINGS
+================================================================================
+================================================================================
+
+------------------------------------------------------------------------------
+6.1 SETTINGS SCREEN
+------------------------------------------------------------------------------
+
+STEP 6.1.A - Settings Screen UI Layout
+    Tasks:
+    [x] Create file: presentation/customer/settings/CustomerSettingsScreen.kt
+    [x] Add screen title: "Settings"
+    [x] Create "Personal Information" section:
+        - Full Name text field
+        - Phone Number text field
+        - Email text field
+    [x] Add "Save Changes" button
+    [x] Create "Security" section:
+        - "Change Password" button/link
+    [x] Add spacing between sections
+
+STEP 6.1.B - Settings Screen Interactivity
+    Tasks:
+    [x] Pre-fill fields with current user data
+    [x] Track if any field changed (dirty state)
+    [x] Enable save button only if dirty
+    [x] Validate:
+        - Name not empty
+        - Phone valid format
+        - Email valid format
+    [x] Show success toast on save
+    [x] Navigate to ChangePasswordScreen on link click
+
+STEP 6.1.C - Settings Screen Data Integration
+    Tasks:
+    [x] Create file: presentation/customer/settings/CustomerSettingsViewModel.kt
+    [x] Inject UserRepository
+    [x] Load real user profile from Firestore using UserRepository.getUserProfile
+    [x] Implement updateProfile function calling UserRepository.updateUserProfile
+    [x] Update session/local state if username changes
+    [x] Handle success/error states with real feedback
+
+================================================================================
+================================================================================
+STAGE 7: SECRETARY PORTAL - DASHBOARD
+================================================================================
+================================================================================
+
+------------------------------------------------------------------------------
+7.1 DASHBOARD SCREEN
+------------------------------------------------------------------------------
+*** STATUS: DEFERRED / UNDER DEVELOPMENT ***
+(User requested to defer this feature as of Jan 31, 2026)
+
+STEP 7.1.A - Dashboard Screen UI Layout
+    Tasks:
+    [x] Create file: presentation/secretary/dashboard/SecretaryDashboardScreen.kt
+    [x] Replaced with "Under Development" Placeholder
+    [ ] Add welcome message: "Good morning, [Name]"
+    [ ] Create KPI cards grid (DEFERRED)
+    [ ] Add Monthly Revenue chart section (DEFERRED)
+
+STEP 7.1.B - Dashboard Screen Interactivity
+    Tasks:
+    [ ] Connect real data (DEFERRED)
+
+STEP 7.1.C - Dashboard Screen Data Integration
+    Tasks:
+    [ ] ViewModel implementation (DEFERRED)
+
+================================================================================
+================================================================================
+STAGE 8: SECRETARY PORTAL - BOOKING REQUESTS
+================================================================================
+================================================================================
+
+------------------------------------------------------------------------------
+8.1 BOOKING REQUESTS LIST SCREEN
+------------------------------------------------------------------------------
+
+STEP 8.1.A - Booking Requests Screen UI Layout
+    Tasks:
+    [x] Create file: presentation/secretary/bookings/BookingRequestsScreen.kt
+    [x] Add screen title: "Booking Requests"
+    [x] Add search bar at top
+    [x] Add filter chips row:
+        - All | Pending | Approved | Rejected
+    [x] Create request card/row design
+    [x] Add scrollable list
+    [x] Create empty state for each filter
+
+STEP 8.1.B - Booking Requests Screen Interactivity
+    Tasks:
+    [x] Implement search filtering (by customer, vehicle, service)
+    [x] Implement filter chip selection
+    [x] Combine search + filter
+    [x] On Accept click:
+        - Show confirmation (Direct action implemented)
+        - Update status to "ACCEPTED"
+    [ ] On Reject click:
+        - Show rejection reason dialog (with text field)
+        - Update status to "REJECTED"
+
+STEP 8.1.C - Booking Requests Screen Data Integration
+    Tasks:
+    [x] Create file: presentation/secretary/bookings/BookingRequestsViewModel.kt
+    [x] Load all bookings from repository
+    [x] Implement acceptBooking function
+    [x] Implement rejectBooking function (with reason)
+    [x] Filter bookings by status
+    [x] Search bookings
+
+------------------------------------------------------------------------------
+8.2 BOOKING DETAILS SCREEN
+------------------------------------------------------------------------------
+
+STEP 8.2.A - Booking Details Screen UI Layout
+    Tasks:
+    [x] Create file: presentation/secretary/bookings/BookingDetailsScreen.kt
+    [x] Add back arrow and title: "Booking Details"
+    [x] Create sections:
+        - Customer, Vehicle, Service, Schedule, Status
+    [x] Add action buttons at bottom
+
+STEP 8.2.B - Booking Details Screen Interactivity
+    Tasks:
+    [x] Receive booking ID from navigation
+    [x] Show/hide action buttons based on status
+    [x] Wire up accept/reject same as list screen
+    [x] Navigate back after action
+
+STEP 8.2.C - Booking Details Screen Data Integration
+    Tasks:
+    [x] Load single booking by ID (via filter in logic)
+    [x] Load associated customer details
+    [x] Reuse accept/reject logic
+
+------------------------------------------------------------------------------
+8.3 REJECT BOOKING DIALOG
+------------------------------------------------------------------------------
+
+STEP 8.3.A - Reject Dialog UI Layout
+    Tasks:
+    [x] Create file: presentation/secretary/bookings/RejectBookingDialog.kt
+    [x] Design dialog:
+        - Message, Reason field, Buttons
+
+STEP 8.3.B - Reject Dialog Interactivity
+    Tasks:
+    [x] Add reason state
+    [x] Validate reason not empty
+    [x] Add onConfirm(reason) callback
+    [x] Add onDismiss callback
+
+================================================================================
+================================================================================
+STAGE 9: SECRETARY PORTAL - APPOINTMENTS & WALK-IN
+================================================================================
+================================================================================
+
+------------------------------------------------------------------------------
+9.1 APPOINTMENTS SCREEN
+------------------------------------------------------------------------------
+
+STEP 9.1.A - Appointments Screen UI Layout
+    Tasks:
+    [x] Create file: presentation/secretary/appointments/ScheduleAppointmentScreen.kt
+    [x] Add screen title: "Schedule Appointment"
+    [x] Create form:
+        - Customer dropdown (select existing customer)
+        - Vehicle dropdown (based on selected customer)
+        - Service type dropdown
+        - Date picker
+        - Time slot dropdown
+        - Notes text field
+    [x] Add "Schedule Appointment" button
+
+STEP 9.1.B - Appointments Screen Interactivity
+    Tasks:
+    [x] Load customer list for dropdown
+    [x] On customer select, load their vehicles
+    [x] Validate all required fields
+    [x] Show confirmation dialog
+    [x] Show success message
+
+STEP 9.1.C - Appointments Screen Data Integration
+    Tasks:
+    [x] Create file: presentation/secretary/appointments/ScheduleAppointmentViewModel.kt
+    [x] Load customers from repository
+    [x] Load vehicles for selected customer
+    [x] Create booking with status "In Progress"
+    [x] Handle success/error
+
+------------------------------------------------------------------------------
+9.2 WALK-IN SCREEN
+------------------------------------------------------------------------------
+
+STEP 9.2.A - Walk-In Screen UI Layout
+    Tasks:
+    [x] Create file: presentation/secretary/walkin/WalkInScreen.kt
+    [x] Add screen title: "Walk-In Customer"
+    [x] Create form sections:
+        
+        Section: Customer Details (New Customer)
+        [x] Full Name
+        [x] Phone Number
+        [x] Email
+        
+        Section: Vehicle Information
+        [x] Brand
+        [x] Model/Type
+        [x] Plate Number
+        
+        Section: Service
+        [x] Service type dropdown
+        [x] Notes
+        
+    [x] Add "Submit Walk-In" button
+
+STEP 9.2.B - Walk-In Screen Interactivity
+    Tasks:
+    [x] Add state for all fields
+    [x] Validate all required fields
+    [x] Show confirmation
+    [x] Clear form after success
+
+STEP 9.2.C - Walk-In Screen Data Integration
+    Tasks:
+    [x] Create file: presentation/secretary/walkin/WalkInViewModel.kt
+    [x] Create new customer record
+    [x] Create new vehicle record
+    [x] Create booking with status "In Progress"
+    [x] All in single transaction
+    [x] Handle success/error
+
+================================================================================
+================================================================================
+STAGE 10: SECRETARY PORTAL - CUSTOMERS
+================================================================================
+================================================================================
+
+------------------------------------------------------------------------------
+10.1 CUSTOMERS SCREEN
+------------------------------------------------------------------------------
+
+STEP 10.1.A - Customers Screen UI Layout
+    Tasks:
+    [x] Create file: presentation/secretary/customers/CustomersScreen.kt
+    [x] Add screen title: "Customers"
+    [x] Add search bar
+    [x] Create customer card design:
+        - Name (header)
+        - Phone number
+        - Email
+        - Number of bookings badge
+    [x] Add scrollable list
+    [x] Create empty state
+
+STEP 10.1.B - Customers Screen Interactivity
+    Tasks:
+    [x] Implement search by name, phone, email
+    [x] Tap card to view details (optional expansion)
+    [x] Implement pull-to-refresh
+
+STEP 10.1.C - Customers Screen Data Integration
+    Tasks:
+    [x] Create file: presentation/secretary/customers/CustomersViewModel.kt
+    [x] Load all customers from repository
+    [x] Implement search filtering
+    [x] Count bookings per customer
+    [x] Connect screen to ViewModel
+
+------------------------------------------------------------------------------
+10.2 MOCK CUSTOMER REPOSITORY
+------------------------------------------------------------------------------
+
+STEP 10.2.C - Mock Data Layer
+    Status: DEPRECATED / REPLACED
+    Tasks:
+    [x] Create file: domain/model/Customer.kt
+    [x] Create file: domain/repository/ICustomerRepository.kt
+    [x] Replaced MockCustomerRepository with Firestore Implementation
+    [x] Seed Initial Data (REMOVED)
+
+================================================================================
+================================================================================
+STAGE 11: SECRETARY PORTAL - INQUIRIES
+================================================================================
+================================================================================
+
+------------------------------------------------------------------------------
+11.1 INQUIRIES SCREEN
+------------------------------------------------------------------------------
+
+STEP 11.1.A - Inquiries Screen UI Layout
+    Tasks:
+    [x] Create file: presentation/secretary/inquiries/InquiriesScreen.kt
+    [x] Add screen title: "Customer Inquiries"
+    [x] Add search bar
+    [x] Add filter chips: All | New | Replied
+    [x] Create inquiry card design:
+        - Customer name
+        - Subject (bold)
+        - Message preview (truncated)
+        - Status badge
+        - Submitted date
+    [x] Add scrollable list
+    [x] Create empty state
+
+STEP 11.1.B - Inquiries Screen Interactivity
+    Tasks:
+    [x] Implement search filtering
+    [x] Implement status filter chips
+    [x] Tap card to open detail dialog/screen
+    [x] Highlight new inquiries
+
+STEP 11.1.C - Inquiries Screen Data Integration
+    Tasks:
+    [x] Create file: presentation/secretary/inquiries/InquiriesViewModel.kt
+    [x] Load all complaints from repository
+    [x] Join with customer data for names
+    [x] Implement filters
+    [x] Connect screen to ViewModel
+
+------------------------------------------------------------------------------
+11.2 INQUIRY DETAIL DIALOG
+------------------------------------------------------------------------------
+
+STEP 11.2.A - Inquiry Detail Dialog UI Layout
+    Tasks:
+    [x] Create file: presentation/secretary/inquiries/InquiryDetailDialog.kt (Inlined)
+    [x] Design full-screen dialog or bottom sheet:
+        - Customer name header
+        - Subject
+        - Full message text
+        - Submitted date
+        - Divider
+        - If already replied:
+            * Previous reply text
+            * Reply date
+        - Reply text area
+        - "Send Reply" button
+
+STEP 11.2.B - Inquiry Detail Dialog Interactivity
+    Tasks:
+    [ ] Display full complaint details
+    [ ] Enable reply text area
+    [ ] Disable send if reply empty
+    [ ] Show success toast on send
+    [ ] Close dialog after sending
+
+STEP 11.2.C - Inquiry Detail Dialog Data Integration
+    Tasks:
+    [ ] Add replyToComplaint function to ViewModel
+    [ ] Update complaint status to "REPLIED"
+    [ ] Add reply text and timestamp
+    [ ] Refresh list after reply
+
+================================================================================
+================================================================================
+STAGE 12: SECRETARY PORTAL - INVENTORY
+================================================================================
+================================================================================
+
+------------------------------------------------------------------------------
+12.1 INVENTORY SCREEN
+------------------------------------------------------------------------------
+
+STEP 12.1.A - Inventory Screen UI Layout
+    Tasks:
+    [x] Create file: presentation/secretary/inventory/InventoryScreen.kt
+    [x] Add screen title: "Inventory"
+    [x] Add search bar
+    [x] Add "Add Item" FAB
+    [x] Create inventory item card:
+        - Item name (header)
+        - Category tag
+        - Quantity with +/- visual
+        - Edit icon button
+        - Delete icon button
+    [x] Add scrollable list
+    [x] Create empty state
+
+STEP 12.1.B - Inventory Screen Interactivity
+    Tasks:
+    [x] Implement search by name, category
+    [x] FAB opens Add Item dialog
+    [x] Edit button opens Edit dialog (pre-filled)
+    [x] Delete button shows confirmation dialog
+    [x] Implement pull-to-refresh
+
+STEP 12.1.C - Inventory Screen Data Integration
+    Tasks:
+    [x] Create file: presentation/secretary/inventory/InventoryViewModel.kt
+    [x] Load all inventory items
+    [x] Implement search filtering
+    [x] Connect to repository for CRUD
+    [x] Refresh list after changes
+
+------------------------------------------------------------------------------
+12.2 ADD/EDIT INVENTORY DIALOG
+------------------------------------------------------------------------------
+
+STEP 12.2.A - Inventory Dialog UI Layout
+    Tasks:
+    [x] Create file: presentation/secretary/inventory/InventoryItemDialog.kt (Inlined in Screen)
+    [x] Design dialog:
+        - Title: "Add Item" or "Edit Item"
+        - Item name text field
+        - Category dropdown (Parts, Fluids, Tools, etc.)
+        - Quantity number field (with +/- buttons)
+        - Cancel button
+        - Save button
+
+STEP 12.2.B - Inventory Dialog Interactivity
+    Tasks:
+    [x] Pre-fill for edit mode
+    [x] Validate:
+        - Name not empty
+        - Category selected
+        - Quantity >= 0
+    [x] Increment/decrement quantity
+    [x] Call save on confirm
+
+STEP 12.2.C - Inventory Dialog Data Integration
+    Tasks:
+    [x] Add createItem function to ViewModel
+    [x] Add updateItem function to ViewModel
+    [x] Generate ID for new items (Firestore Auto-ID)
+    [x] Refresh list after save
+
+------------------------------------------------------------------------------
+12.3 MOCK INVENTORY REPOSITORY
+------------------------------------------------------------------------------
+
+STEP 12.3.C - Mock Data Layer
+    Status: DEPRECATED / REPLACED
+    Tasks:
+    [x] Create file: domain/model/InventoryItem.kt
+    [x] Create file: domain/repository/IInventoryRepository.kt
+    [x] Replaced MockInventoryRepository with Firestore Implementation
+    [x] Seed Initial Data (REMOVED)
+
+================================================================================
+================================================================================
+STAGE 13: SECRETARY PORTAL - REPORTS
+================================================================================
+================================================================================
+
+------------------------------------------------------------------------------
+13.1 REPORTS SCREEN
+------------------------------------------------------------------------------
+
+STEP 13.1.A - Reports Screen UI Layout
+    Tasks:
+    [x] Create file: presentation/secretary/reports/ReportsScreen.kt
+    [x] Add screen title: "Reports"
+    [x] Create report type cards:
+        
+        Card: Revenue Analysis
+        [x] Icon: Chart
+        [x] Description text
+        [x] "Generate" button
+        
+        (Future cards can be added here)
+        
+    [x] Tapping card opens report view
+
+STEP 13.1.B - Reports Screen Interactivity
+    Tasks:
+    [x] Navigate to report view on card tap
+    [ ] Could add date range picker in future
+
+------------------------------------------------------------------------------
+13.2 REVENUE REPORT VIEW
+------------------------------------------------------------------------------
+
+STEP 13.2.A - Revenue Report Screen UI Layout
+    Tasks:
+    [x] Create file: presentation/secretary/reports/RevenueReportScreen.kt
+    [x] Add back arrow and title: "Revenue Analysis"
+    [x] Create summary section:
+        - Total Revenue card
+        - Total Transactions count
+        - Average Transaction value
+    [x] Create transaction list:
+        - Date
+        - Customer
+        - Service
+        - Amount
+    [x] Add action buttons:
+        - Print button
+        - Download PDF button
+
+STEP 13.2.B - Revenue Report Screen Interactivity
+    Tasks:
+    [ ] Print button: Use Android Print Framework (Placeholder added)
+    [ ] PDF button: Generate PDF and save/share (Placeholder added)
+    [x] Scrollable transaction list
+
+STEP 13.2.C - Revenue Report Screen Data Integration
+    Tasks:
+    [x] Create file: presentation/secretary/reports/ReportsViewModel.kt
+    [x] Load completed bookings with amounts
+    [x] Calculate totals and averages
+    [x] Format data for display
+    [ ] Implement PDF generation (use iText or similar)
+    [ ] Implement print functionality
+
+================================================================================
+================================================================================
+STAGE 14: INTEGRATION & TESTING
+================================================================================
+================================================================================
+
+------------------------------------------------------------------------------
+14.1 DEPENDENCY INJECTION SETUP
+------------------------------------------------------------------------------
+
+STEP 14.1.C - Configure Hilt
+    Tasks:
+    [ ] Create file: di/AppModule.kt
+    [ ] Provide all repository implementations
+    [ ] Provide SessionManager
+    [ ] Annotate Application class with @HiltAndroidApp
+    [ ] Annotate ViewModels with @HiltViewModel
+    [ ] Annotate Activities with @AndroidEntryPoint
+
+------------------------------------------------------------------------------
+14.2 UNIT TESTING
+------------------------------------------------------------------------------
+
+STEP 14.2 - Write Tests
+    Status: SKIPPED (User Request: Use Real Data)
+    Tasks:
+    [x] Test AuthViewModel (Skipped)
+    [x] Test CustomerBookingsViewModel (Skipped)
+    [x] Test BookingRequestsViewModel (Skipped)
+    [x] Test InventoryViewModel (Skipped)
+    [x] Test mock repositories (Skipped)
+
+------------------------------------------------------------------------------
+14.3 UI TESTING
+------------------------------------------------------------------------------
+
+STEP 14.3 - Write UI Tests
+    Tasks:
+    [ ] Test login flow
+    [ ] Test registration flow
+    [ ] Test booking creation flow
+    [ ] Test complaint filing flow
+    [ ] Test secretary accept/reject flow
+
+------------------------------------------------------------------------------
+14.4 POLISH & REFINEMENT
+------------------------------------------------------------------------------
+
+STEP 14.4 - Final Polish
+    Tasks:
+    [ ] Review all error messages
+    [ ] Add proper loading states everywhere
+    [ ] Handle edge cases (empty lists, network errors)
+    [ ] Verify navigation back stack behavior
+    [ ] Test on multiple screen sizes
+    [ ] Add proper content descriptions for accessibility
+    [ ] Review and fix any UI inconsistencies
+
+================================================================================
+RECOMMENDED EXECUTION ORDER
+================================================================================
+
+Week 1: Stage 1 (Foundation)
+Week 2: Stage 2 (Auth) + Stage 3 (Navigation)
+Week 3: Stage 4 (Customer Bookings)
+Week 4: Stage 5 + 6 (Customer Complaints & Settings)
+Week 5: Stage 7 + 8 (Secretary Dashboard & Booking Requests)
+Week 6: Stage 9 + 10 (Appointments, Walk-in, Customers)
+Week 7: Stage 11 + 12 (Inquiries & Inventory)
+Week 8: Stage 13 (Reports) + Stage 14 (Testing & Polish)
+
+================================================================================
+================================================================================
+END OF DETAILED PHASING
+================================================================================
+
+================================================================================
+NEW & ADDED FEATURES LOG
+================================================================================
+(Features implemented that were not originally detailed or are major milestones)
+
+1. [x] Real-Time Firestore Integration
+   - Replaced Mock Repositories with separate AppointmentsRepository implementations for Customer and Secretary.
+   - Implemented "My Bookings" (Customer) and "Appointments" (Secretary) using live data.
+
+2. [x] Role-Based Access Control (RBAC)
+   - Implemented strict navigation divergence based on Firestore user role (CUSTOMER vs SECRETARY).
+   - Added security rules (logic layer) to filter data by userId.
+
+3. [x] Responsive Navigation Shells
+   - Created distinct UI Shells for Customer (BottomBar/Drawer) and Secretary (Permanent Drawer).
+   - Standardized navigation graph with type-safe Routes.
+
+4. [x] Email Verification & Security
+   - Implemented Firebase Native Email Verification (Link-based).
+   - Added `isVerified` field to Firestore interactions.
+   - Enforced verification check on Login (blocks access if unverified).
+   - Added "Forgot Password" functionality via email reset link.
+
+5. [x] Pure Firestore Architecture
+   - Removed all Mock Repositories.
+   - Removed `seedInitialData` logic; app now runs 100% on real user input.
+   - Verified no fake data triggers in production code.
+
+6. [x] Secretary Booking Requests Management
+   - Implemented Booking Requests List with filtering (Pending/Approved/Rejected).
+   - Implemented detailed view for bookings.
+   - Added logic to Accept (to ACCEPTED/IN_PROGRESS) or Decline (to REJECTED) requests.
+   - Added logic to Accept (to ACCEPTED/IN_PROGRESS) or Decline (to REJECTED) requests.
+   - Integrated with Firestore real-time updates.
+
+7. [x] Secretary Customers Management
+   - Added `getAllCustomers()` to UserRepository using Firestore.
+   - Added `getAllCustomers()` to UserRepository using Firestore.
+   - Implemented Customers List Screen with search capabilities.
+   - Verified real-time updates and dependency injection.
+
+8. [x] Secretary Inquiries Management
+   - Added `getAllComplaints()` and `updateComplaintStatus()` (reply) to repository.
+   - Implemented Inquiries Screen with status filtering (New/Replied).
+   - Added `getAllComplaints()` and `updateComplaintStatus()` (reply) to repository.
+   - Implemented Inquiries Screen with status filtering (New/Replied).
+   - Implemented Reply Dialog logic to update Firestore.
+
+9. [x] Secretary Inventory System
+   - Implemented `InventoryRepository` with CRUD operations (Firestore).
+   - Created Inventory Screen with real-time list, search, and quantity controls.
+   - Added Dialog for Adding/Editing items with category selection.
+
+10. [x] Secretary Reports (Revenue)
+   - Created Reports Dashboard with modular card layout.
+   - Implemented Revenue Analysis Screen showing Total Revenue & Transaction History.
+   - Updated Appointment model to support pricing data.
+   - Aggregated data from "COMPLETED" appointments.
+
+11. [x] Secretary Appointments & Walk-In
+   - Implemented `ScheduleAppointmentScreen` for booking appointments for existing customers with vehicle history.
+   - Implemented `WalkInScreen` for registering new customers and bookings in a single flow.
+   - Setup dedicated ViewModels (`ScheduleAppointmentViewModel`, `WalkInViewModel`) handling Firestore interactions.
+   - Updated Secretary navigation with a FAB Menu for quick access.
+
+12. [x] Code Polish & Standardization
+   - Created `AppConstants.kt` to centralize shared data (Service Types, Time Slots, Inventory Categories).
+   - Refactored `ScheduleAppointmentScreen`, `WalkInScreen`, `NewBookingScreen`, and `InventoryScreen` to use shared constants.
+   - Standardized UI components (e.g. `DropdownField`) across Secretary Portal.
+   - Verified Empty States for all major lists.
+   - [Customer] Removed 'Dashboard' screen and set 'My Bookings' as the default home screen.
+
+13. [x] Secretary Dashboard
+   - Implemented `SecretaryDashboardViewModel` to aggregating stats and today's schedule.
+   - Updated `SecretaryDashboardScreen` to display Today's Appointments, Pending Count, and Quick Actions.
+   - Connected dashboard to Walk-In and New Booking flows.
+
+14. [x] Debug Auth Bypass & Seeding Stabilization
+    - Added `UserSessionManager` override support for debug login bypass.
+    - Added `DebugSeederViewModel` seed flows for users, appointments, inventory, and complaints.
+    - Removed unstable debug auth creation logic pending re-implementation.
+    - Fixed duplicate `@Provides`/`@Singleton` annotations in `AppModule.kt` and verified build.

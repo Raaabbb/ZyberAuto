@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="primary_red">#F20D0D</color>
+    <color name="primary_red_dark">#B91C1C</color> <!-- Using the forgot password dark or similar -->
+    <color name="background_light">#F8F5F5</color>
+    <color name="background_dark">#1A0A0A</color>
+    <color name="white">#FFFFFFFF</color>
+    <color name="black">#FF000000</color>
+</resources>
