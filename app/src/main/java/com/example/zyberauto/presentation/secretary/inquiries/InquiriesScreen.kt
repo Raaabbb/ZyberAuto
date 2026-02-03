@@ -17,10 +17,11 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.example.zyberauto.domain.model.Complaint
+import com.example.zyberauto.domain.model.Inquiry
 import com.example.zyberauto.presentation.common.components.LoadingSpinner
 import com.example.zyberauto.presentation.common.components.StatusBadge
 import java.text.SimpleDateFormat
+import java.util.Date
 import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -30,7 +31,7 @@ fun InquiriesScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var selectedFilter by remember { mutableStateOf("All") }
-    var selectedComplaint by remember { mutableStateOf<Complaint?>(null) }
+    var selectedInquiry by remember { mutableStateOf<Inquiry?>(null) }
     var showReplyDialog by remember { mutableStateOf(false) }
 
     Scaffold { padding ->
@@ -77,11 +78,11 @@ fun InquiriesScreen(
                     )
                 }
                 is InquiriesUiState.Success -> {
-                    val filteredList = state.complaints.filter {
+                    val filteredList = state.inquiries.filter { inquiry ->
                         when (selectedFilter) {
                             "All" -> true
-                            "New" -> it.status == "NEW"
-                            "Replied" -> it.status == "REPLIED"
+                            "New" -> inquiry.status == "NEW"
+                            "Replied" -> inquiry.status == "REPLIED"
                             else -> true
                         }
                     }
@@ -94,9 +95,9 @@ fun InquiriesScreen(
                         LazyColumn(
                             verticalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            items(filteredList) { complaint ->
-                                InquiryCard(complaint = complaint) {
-                                    selectedComplaint = complaint
+                            items(filteredList) { inquiry ->
+                                InquiryCard(inquiry = inquiry) {
+                                    selectedInquiry = inquiry
                                     showReplyDialog = true
                                 }
                             }
@@ -107,12 +108,12 @@ fun InquiriesScreen(
         }
     }
 
-    if (showReplyDialog && selectedComplaint != null) {
+    if (showReplyDialog && selectedInquiry != null) {
         ReplyDialog(
-            complaint = selectedComplaint!!,
+            inquiry = selectedInquiry!!,
             onDismiss = { showReplyDialog = false },
             onSubmit = { reply ->
-                viewModel.submitReply(selectedComplaint!!.id, reply)
+                viewModel.submitReply(selectedInquiry!!.id, reply)
                 showReplyDialog = false
             }
         )
@@ -121,7 +122,7 @@ fun InquiriesScreen(
 
 @Composable
 fun InquiryCard(
-    complaint: Complaint,
+    inquiry: Inquiry,
     onClick: () -> Unit
 ) {
     Card(
@@ -137,10 +138,10 @@ fun InquiryCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = complaint.customerName.ifBlank { "Unknown User" },
+                    text = inquiry.customerName.ifBlank { "Unknown User" },
                     style = MaterialTheme.typography.titleMedium
                 )
-                val statusType = when (complaint.status) {
+                val statusType = when (inquiry.status) {
                     "NEW" -> com.example.zyberauto.presentation.common.components.StatusType.New
                     "REPLIED" -> com.example.zyberauto.presentation.common.components.StatusType.Replied
                     else -> com.example.zyberauto.presentation.common.components.StatusType.Closed
@@ -149,13 +150,13 @@ fun InquiryCard(
             }
 
             Text(
-                text = complaint.subject,
+                text = inquiry.subject,
                 style = MaterialTheme.typography.bodyLarge,
                 fontWeight = FontWeight.Bold
             )
 
             Text(
-                text = complaint.message,
+                text = inquiry.message,
                 style = MaterialTheme.typography.bodyMedium,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis
@@ -163,7 +164,7 @@ fun InquiryCard(
             
             val dateFormat = SimpleDateFormat("MMM dd, yyyy", Locale.getDefault())
             Text(
-                text = dateFormat.format(complaint.dateSubmitted),
+                text = dateFormat.format(Date(inquiry.dateSubmitted)),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -173,22 +174,22 @@ fun InquiryCard(
 
 @Composable
 fun ReplyDialog(
-    complaint: Complaint,
+    inquiry: Inquiry,
     onDismiss: () -> Unit,
     onSubmit: (String) -> Unit
 ) {
-    var replyText by remember { mutableStateOf(complaint.reply ?: "") }
-    val isReadOnly = complaint.status == "REPLIED"
+    var replyText by remember { mutableStateOf(inquiry.reply ?: "") }
+    val isReadOnly = inquiry.status == "REPLIED"
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(text = complaint.subject) },
+        title = { Text(text = inquiry.subject) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 Column {
-                    Text("From: ${complaint.customerName}", style = MaterialTheme.typography.labelMedium)
+                    Text("From: ${inquiry.customerName}", style = MaterialTheme.typography.labelMedium)
                     Spacer(Modifier.height(4.dp))
-                    Text(complaint.message, style = MaterialTheme.typography.bodyMedium)
+                    Text(inquiry.message, style = MaterialTheme.typography.bodyMedium)
                 }
 
                 Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(MaterialTheme.colorScheme.outlineVariant))

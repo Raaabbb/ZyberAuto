@@ -3,12 +3,12 @@ package com.example.zyberauto.ui.theme
 import androidx.compose.ui.graphics.Color
 
 // Primary
-val PrimaryRed = Color(0xFFF20D0D)
+val PrimaryRed = Color(0xFFEC1313)
 
 // Backgrounds
-val BackgroundLight = Color(0xFFF8F5F5)
-val BackgroundDark = Color(0xFF1A0A0A)
-val SurfaceDarkAlternative = Color(0xFF221010) // Option provided for dark mode
+val BackgroundLight = Color(0xFFF8F6F6) // Updated to match user's background-light
+val BackgroundDark = Color(0xFF221010)
+val SurfaceDarkAlternative = Color(0xFF2A1515) // Slightly lighter for contrast
 val AltBackgroundLight = Color(0xFFF6F7F8)
 val AltBackgroundDark = Color(0xFF101922) // Or 0F0F0F
 

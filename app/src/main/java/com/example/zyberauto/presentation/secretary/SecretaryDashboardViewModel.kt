@@ -3,56 +3,145 @@ package com.example.zyberauto.presentation.secretary
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.zyberauto.domain.model.Appointment
+import com.example.zyberauto.domain.model.Inquiry
 import com.example.zyberauto.domain.repository.AppointmentsRepository
+import com.example.zyberauto.domain.repository.InquiriesRepository
 import com.example.zyberauto.domain.repository.UserRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.stateIn
 import java.util.Calendar
+import java.util.TimeZone
 import javax.inject.Inject
 
 @HiltViewModel
 class SecretaryDashboardViewModel @Inject constructor(
     private val appointmentsRepository: AppointmentsRepository,
+    private val inquiriesRepository: InquiriesRepository,
     private val userRepository: UserRepository
 ) : ViewModel() {
 
-    private val _appointments = appointmentsRepository.getAppointments()
-    private val _customers = userRepository.getAllCustomers()
+    // Use Asia/Manila timezone for all date calculations
+    private val manilaTimeZone = TimeZone.getTimeZone("Asia/Manila")
 
-    // Combined UI State
+    private val _appointments = appointmentsRepository.getAppointments()
+    private val _inquiries = inquiriesRepository.getAllInquiries()
+    private val _customers = userRepository.getAllCustomers()
+    
+    // Ticker that emits every 60 seconds to refresh time-based calculations
+    private val ticker: Flow<Long> = flow {
+        while (true) {
+            emit(System.currentTimeMillis())
+            delay(60_000L) // Refresh every 60 seconds
+        }
+    }
+
+    // Combined UI State with real-time data + auto-refresh
     val uiState: StateFlow<DashboardUiState> = combine(
         _appointments,
-        _customers
-    ) { appointments, customers ->
+        _inquiries,
+        _customers,
+        ticker
+    ) { appointments, inquiries, customers, _ ->
         
-        val today = Calendar.getInstance()
+        val today = Calendar.getInstance(manilaTimeZone)
         val todayYear = today.get(Calendar.YEAR)
         val todayDay = today.get(Calendar.DAY_OF_YEAR)
 
-        // Stats
-        val totalCustomers = customers.size
+        // Active Operations: ACCEPTED or IN_PROGRESS
+        val activeOperations = appointments.count { 
+            it.status == "ACCEPTED" || it.status == "IN_PROGRESS" 
+        }
+
+        // Pending Requests
         val pendingRequests = appointments.count { it.status == "PENDING" }
+
+        // === THIS WEEK EFFICIENCY ===
+        val thisWeekStart = Calendar.getInstance(manilaTimeZone).apply {
+            set(Calendar.DAY_OF_WEEK, firstDayOfWeek)
+            set(Calendar.HOUR_OF_DAY, 0)
+            set(Calendar.MINUTE, 0)
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
+        }
+        val thisWeekAppointments = appointments.filter { 
+            it.dateScheduled.time >= thisWeekStart.timeInMillis 
+        }
+        val thisWeekCompleted = thisWeekAppointments.count { it.status == "COMPLETED" }
+        val thisWeekTotal = thisWeekAppointments.count { 
+            it.status in listOf("COMPLETED", "ACCEPTED", "IN_PROGRESS", "DECLINED") 
+        }
+        val thisWeekEfficiency = if (thisWeekTotal > 0) {
+            thisWeekCompleted.toFloat() / thisWeekTotal.toFloat()
+        } else 0f
+
+        // === LAST WEEK EFFICIENCY ===
+        val lastWeekEnd = thisWeekStart.clone() as Calendar
+        lastWeekEnd.add(Calendar.MILLISECOND, -1)
+        val lastWeekStart = lastWeekEnd.clone() as Calendar
+        lastWeekStart.add(Calendar.DAY_OF_YEAR, -7)
         
-        val appointmentsToday = appointments.filter { 
-            val apptDate = Calendar.getInstance().apply { time = it.dateScheduled }
+        val lastWeekAppointments = appointments.filter { 
+            it.dateScheduled.time >= lastWeekStart.timeInMillis &&
+            it.dateScheduled.time <= lastWeekEnd.timeInMillis
+        }
+        val lastWeekCompleted = lastWeekAppointments.count { it.status == "COMPLETED" }
+        val lastWeekTotal = lastWeekAppointments.count { 
+            it.status in listOf("COMPLETED", "ACCEPTED", "IN_PROGRESS", "DECLINED") 
+        }
+        val lastWeekEfficiency = if (lastWeekTotal > 0) {
+            lastWeekCompleted.toFloat() / lastWeekTotal.toFloat()
+        } else 0f
+
+        // Efficiency change compared to last week
+        val efficiencyChange = thisWeekEfficiency - lastWeekEfficiency
+
+        // Unread Inquiries (status = NEW)
+        val unreadInquiries = inquiries.count { it.status == "NEW" }
+
+        // Chart Data: Last 7 days appointment counts
+        val chartData = (0..6).map { daysAgo ->
+            val targetDay = Calendar.getInstance(manilaTimeZone).apply {
+                add(Calendar.DAY_OF_YEAR, -daysAgo)
+            }
+            val targetYear = targetDay.get(Calendar.YEAR)
+            val targetDayOfYear = targetDay.get(Calendar.DAY_OF_YEAR)
+            
+            appointments.count { appt ->
+                val apptDate = Calendar.getInstance(manilaTimeZone).apply { time = appt.dateScheduled }
+                apptDate.get(Calendar.YEAR) == targetYear && 
+                apptDate.get(Calendar.DAY_OF_YEAR) == targetDayOfYear
+            }
+        }.reversed() // Oldest to newest
+
+        // Today's accepted appointments for timeline
+        val acceptedAppointmentsToday = appointments.filter { 
+            val apptDate = Calendar.getInstance(manilaTimeZone).apply { time = it.dateScheduled }
             apptDate.get(Calendar.YEAR) == todayYear && 
             apptDate.get(Calendar.DAY_OF_YEAR) == todayDay &&
             (it.status == "ACCEPTED" || it.status == "IN_PROGRESS" || it.status == "COMPLETED")
-        }.sortedBy { it.timeSlot } // Simple string sort for now, ideally parse time
-
-        val todayStatsCount = appointmentsToday.size
+        }.sortedBy { it.timeSlot }
         
+        // Current hour for timeline indicator (Manila time)
+        val currentHour = today.get(Calendar.HOUR_OF_DAY)
+
         DashboardUiState.Success(
             stats = DashboardStats(
-                appointmentsToday = todayStatsCount,
+                activeOperations = activeOperations,
                 pendingRequests = pendingRequests,
-                totalCustomers = totalCustomers
+                efficiencyRate = thisWeekEfficiency,
+                efficiencyChange = efficiencyChange,
+                unreadInquiries = unreadInquiries,
+                chartData = chartData,
+                totalCustomers = customers.size
             ),
-            todaySchedule = appointmentsToday
+            todaySchedule = acceptedAppointmentsToday,
+            currentHour = currentHour
         )
     }.stateIn(
         scope = viewModelScope,
@@ -65,13 +154,18 @@ sealed class DashboardUiState {
     object Loading : DashboardUiState()
     data class Success(
         val stats: DashboardStats,
-        val todaySchedule: List<Appointment>
+        val todaySchedule: List<Appointment>,
+        val currentHour: Int = 0
     ) : DashboardUiState()
     data class Error(val message: String) : DashboardUiState()
 }
 
 data class DashboardStats(
-    val appointmentsToday: Int,
+    val activeOperations: Int,
     val pendingRequests: Int,
+    val efficiencyRate: Float,
+    val efficiencyChange: Float, // Positive = improvement over last week
+    val unreadInquiries: Int,
+    val chartData: List<Int>,
     val totalCustomers: Int
 )

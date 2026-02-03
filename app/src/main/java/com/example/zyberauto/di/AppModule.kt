@@ -30,6 +30,14 @@ object AppModule {
 
     @Provides
     @Singleton
+    fun provideFirebaseDatabase(): com.google.firebase.database.FirebaseDatabase {
+        val database = com.google.firebase.database.FirebaseDatabase.getInstance("https://wowo-4737e9d8-default-rtdb.asia-southeast1.firebasedatabase.app/")
+        database.setPersistenceEnabled(true)
+        return database
+    }
+
+    @Provides
+    @Singleton
     fun provideUserRepository(
         auth: FirebaseAuth,
         firestore: FirebaseFirestore
@@ -40,17 +48,17 @@ object AppModule {
     @Provides
     @Singleton
     fun provideAppointmentsRepository(
-        firestore: FirebaseFirestore
+        database: com.google.firebase.database.FirebaseDatabase
     ): AppointmentsRepository {
-        return AppointmentsRepositoryImpl(firestore)
+        return AppointmentsRepositoryImpl(database)
     }
 
     @Provides
     @Singleton
-    fun provideComplaintsRepository(
-        firestore: FirebaseFirestore
-    ): com.example.zyberauto.domain.repository.ComplaintsRepository {
-        return com.example.zyberauto.data.repository.ComplaintsRepositoryImpl(firestore)
+    fun provideInquiriesRepository(
+        database: com.google.firebase.database.FirebaseDatabase
+    ): com.example.zyberauto.domain.repository.InquiriesRepository {
+        return com.example.zyberauto.data.repository.InquiriesRepositoryImpl(database)
     }
 
     @Provides

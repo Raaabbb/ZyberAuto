@@ -24,8 +24,7 @@ import androidx.compose.ui.text.style.TextDecoration
 fun LoginScreen(
     viewModel: AuthViewModel = hiltViewModel(),
     onLoginSuccess: (String) -> Unit = {},
-    onNavigateToRegister: () -> Unit = {},
-    onNavigateToDebug: () -> Unit = {}
+    onNavigateToRegister: () -> Unit = {}
 ) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
@@ -159,10 +158,7 @@ fun LoginScreen(
                         Text(text = "Don't have an account? Register here")
                     }
                     
-                    Spacer(modifier = Modifier.height(16.dp))
-                    TextButton(onClick = onNavigateToDebug) {
-                        Text("Debug: Seed System", color = Color.Gray)
-                    }
+
                 }
             }
         }

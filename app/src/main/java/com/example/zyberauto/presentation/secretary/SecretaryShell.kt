@@ -2,28 +2,44 @@ package com.example.zyberauto.presentation.secretary
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Assignment
+import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.foundation.background
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.draw.blur
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.ui.zIndex
+import androidx.navigation.NavDestination.Companion.hierarchy
+import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import kotlinx.coroutines.launch
+import com.example.zyberauto.presentation.secretary.appointments.SecretaryScheduleWrapperScreen
+import com.example.zyberauto.presentation.secretary.operations.SecretaryOperationsScreen
 
 sealed class SecretaryRoute(val route: String, val title: String, val icon: ImageVector) {
-    object Dashboard : SecretaryRoute("sec_dashboard", "Dashboard", Icons.Default.Dashboard)
-    object Appointments : SecretaryRoute("sec_appointments", "Appointments", Icons.Default.CalendarToday)
-    object Customers : SecretaryRoute("sec_customers", "Customers", Icons.Default.People)
-    object BookingRequests : SecretaryRoute("sec_requests", "Requests", Icons.Default.Assignment)
-    object Inquiries : SecretaryRoute("sec_inquiries", "Inquiries", Icons.Default.Chat)
+    object Dashboard : SecretaryRoute("sec_dashboard", "Home", Icons.Default.Dashboard)
+    object Schedule : SecretaryRoute("sec_schedule_tab", "Schedule", Icons.Default.CalendarToday)
+    object Operations : SecretaryRoute("sec_operations_tab", "Operations", Icons.Default.Business)
     object Reports : SecretaryRoute("sec_reports", "Reports", Icons.Default.BarChart)
+    
+    // Hidden Routes (Not in Bottom Bar)
+    object Customers : SecretaryRoute("sec_customers", "Customers", Icons.Default.People)
+    object BookingRequests : SecretaryRoute("sec_requests", "Requests", Icons.AutoMirrored.Filled.Assignment)
+    object Inquiries : SecretaryRoute("sec_inquiries", "Inquiries", Icons.AutoMirrored.Filled.Chat)
     object Inventory : SecretaryRoute("sec_inventory", "Inventory", Icons.Default.Inventory)
     object Settings : SecretaryRoute("sec_settings", "Settings", Icons.Default.Settings)
+    object Appointments : SecretaryRoute("sec_appointments", "Appointments", Icons.Default.CalendarToday) // Kept for reference or internal nav
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -32,176 +48,250 @@ fun SecretaryShell(
     rootNavController: NavHostController,
     onLogout: () -> Unit
 ) {
-    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
-    val scope = rememberCoroutineScope()
     val secretaryNavController = rememberNavController()
     
     val navBackStackEntry by secretaryNavController.currentBackStackEntryAsState()
-    val currentRoute = navBackStackEntry?.destination?.route
+    val currentDestination = navBackStackEntry?.destination
+    val currentRoute = currentDestination?.route
 
-    val navigationItems = listOf(
+    val bottomNavItems = listOf(
         SecretaryRoute.Dashboard,
-        SecretaryRoute.Appointments,
-        SecretaryRoute.Customers,
-        SecretaryRoute.Inquiries,
-        SecretaryRoute.Reports,
-        SecretaryRoute.Inventory,
-        SecretaryRoute.Settings
+        SecretaryRoute.Schedule,
+        SecretaryRoute.Operations,
+        SecretaryRoute.Reports
     )
 
     fun navigateTo(route: String) {
         secretaryNavController.navigate(route) {
-            popUpTo(secretaryNavController.graph.startDestinationId)
+            popUpTo(secretaryNavController.graph.findStartDestination().id) {
+                saveState = true
+            }
             launchSingleTop = true
+            restoreState = true
         }
     }
 
-    val drawerContent: @Composable () -> Unit = {
-        ModalDrawerSheet {
-            Spacer(Modifier.height(12.dp))
-            NavigationDrawerItem(
-                label = { Text("ZyberAuto Staff") },
-                selected = false,
-                onClick = { },
-                modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
-            )
-            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-            
-            navigationItems.forEach { item ->
-                NavigationDrawerItem(
-                    icon = { Icon(item.icon, contentDescription = item.title) },
-                    label = { Text(item.title) },
-                    selected = currentRoute == item.route,
-                    onClick = {
-                        navigateTo(item.route)
-                        scope.launch { drawerState.close() }
+    Scaffold(
+        topBar = {
+            if (currentRoute != SecretaryRoute.Settings.route && currentRoute != SecretaryRoute.Dashboard.route) {
+                CenterAlignedTopAppBar(
+                    title = { 
+                        Text(bottomNavItems.find { it.route == currentRoute }?.title ?: "Secretary Portal")
                     },
-                    modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
-                )
-            }
-            
-            Spacer(Modifier.weight(1f))
-            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-            NavigationDrawerItem(
-                icon = { Icon(Icons.Default.ExitToApp, "Log Out") },
-                label = { Text("Log Out") },
-                selected = false,
-                onClick = onLogout,
-                modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
-            )
-            Spacer(Modifier.height(12.dp))
-        }
-    }
-
-    val configuration = androidx.compose.ui.platform.LocalConfiguration.current
-    val isWideScreen = configuration.screenWidthDp.dp >= 600.dp
-
-    if (isWideScreen) {
-        // Tablet/Desktop: Permanent Sidebar
-        Row(modifier = Modifier.fillMaxSize()) {
-            PermanentDrawerSheet(modifier = Modifier.width(240.dp)) {
-                Spacer(Modifier.height(12.dp))
-                Text(
-                    "ZyberAuto Staff",
-                    style = MaterialTheme.typography.titleMedium,
-                    modifier = Modifier.padding(16.dp)
-                )
-                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-                
-                navigationItems.forEach { item ->
-                    NavigationDrawerItem(
-                        icon = { Icon(item.icon, contentDescription = item.title) },
-                        label = { Text(item.title) },
-                        selected = currentRoute == item.route,
-                        onClick = { navigateTo(item.route) },
-                        modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
-                    )
-                }
-                
-                Spacer(Modifier.weight(1f))
-                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-                NavigationDrawerItem(
-                    icon = { Icon(Icons.Default.ExitToApp, "Log Out") },
-                    label = { Text("Log Out") },
-                    selected = false,
-                    onClick = onLogout,
-                    modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
-                )
-                Spacer(Modifier.height(12.dp))
-            }
-            
-            // Content Content
-            Scaffold(
-                topBar = {
-                    // Optional: No hamburger menu needed for wide screen
-                    CenterAlignedTopAppBar(
-                        title = { 
-                            Text(navigationItems.find { it.route == currentRoute }?.title ?: "Secretary Portal")
-                        },
-                        colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                            containerColor = MaterialTheme.colorScheme.primaryContainer,
-                            titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
-                        )
-                    )
-                }
-            ) { paddingValues ->
-                SecretaryNavHost(secretaryNavController, paddingValues)
-            }
-        }
-    } else {
-        // Mobile: Modal Drawer with Hamburger
-        ModalNavigationDrawer(
-            drawerState = drawerState,
-            drawerContent = drawerContent
-        ) {
-            Scaffold(
-                topBar = {
-                    CenterAlignedTopAppBar(
-                        title = { 
-                            Text(navigationItems.find { it.route == currentRoute }?.title ?: "Secretary Portal")
-                        },
-                        navigationIcon = {
-                            IconButton(onClick = { scope.launch { drawerState.open() } }) {
-                                Icon(Icons.Default.Menu, contentDescription = "Menu")
+                    colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        titleContentColor = MaterialTheme.colorScheme.onPrimary,
+                        actionIconContentColor = MaterialTheme.colorScheme.onPrimary,
+                        navigationIconContentColor = MaterialTheme.colorScheme.onPrimary
+                    ),
+                    actions = {
+                        IconButton(onClick = { 
+                            if (currentRoute == SecretaryRoute.Settings.route) {
+                                secretaryNavController.popBackStack()
+                            } else {
+                                secretaryNavController.navigate(SecretaryRoute.Settings.route) {
+                                    launchSingleTop = true 
+                                }
                             }
-                        },
-                        colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                            containerColor = MaterialTheme.colorScheme.primaryContainer,
-                            titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
-                        )
-                    )
+                        }) {
+                            Icon(Icons.Default.Settings, contentDescription = "Settings")
+                        }
+                    }
+                )
+            }
+        },
+        // Removed standard bottomBar
+    ) { paddingValues ->
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+        ) {
+            // Content
+            SecretaryNavHost(
+                navController = secretaryNavController, 
+                paddingValues = PaddingValues(bottom = 100.dp), // Add space for floating bar
+                onLogout = onLogout
+            )
+            
+            // Fixed Bottom Nav + FAB
+            if (currentRoute != SecretaryRoute.Settings.route) {
+                // FAB
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .padding(bottom = 60.dp) // Sits above the bar (height 80dp approx)
+                        .zIndex(2f)
+                ) {
+                    CenterFab(onClick = { secretaryNavController.navigate("sec_walkin") })
                 }
-            ) { paddingValues ->
-                SecretaryNavHost(secretaryNavController, paddingValues)
+                
+                // Bottom Bar
+                FixedBottomNav(
+                    currentRoute = currentRoute,
+                    onItemClick = { navigateTo(it.route) },
+                    modifier = Modifier.align(Alignment.BottomCenter)
+                )
             }
         }
     }
 }
 
 @Composable
-fun SecretaryNavHost(navController: NavHostController, paddingValues: PaddingValues) {
+fun CenterFab(onClick: () -> Unit) {
+    // Red Glow Shadow effect handled by Box or custom modifier if needed, simplifying for standard FAB first
+    // User asked for "Shadow-[0_0_30px_#d41111]"
+    // We can simulate with a Box behind it.
+    Box(contentAlignment = Alignment.Center) {
+        // Glow
+        Box(
+            modifier = Modifier
+                .size(64.dp)
+                .background(com.example.zyberauto.ui.theme.PrimaryRed.copy(alpha=0.4f), androidx.compose.foundation.shape.CircleShape)
+                .blur(16.dp)
+        )
+        IconButton(
+            onClick = onClick,
+            modifier = Modifier
+                .size(64.dp)
+                .background(com.example.zyberauto.ui.theme.PrimaryRed, androidx.compose.foundation.shape.CircleShape)
+                .border(2.dp, androidx.compose.ui.graphics.Color.White.copy(alpha=0.1f), androidx.compose.foundation.shape.CircleShape)
+        ) {
+            Icon(Icons.Default.Add, contentDescription = "New", tint = androidx.compose.ui.graphics.Color.White, modifier = Modifier.size(32.dp))
+        }
+    }
+}
+
+@Composable
+fun FixedBottomNav(
+    currentRoute: String?,
+    onItemClick: (SecretaryRoute) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        modifier = modifier.fillMaxWidth().height(96.dp), // h-24 = 96px ~ 96dp? Actually h-24 is 6rem = 96px.
+        color = com.example.zyberauto.ui.theme.BackgroundDark.copy(alpha = 0.9f),
+        border = androidx.compose.foundation.BorderStroke(1.dp, androidx.compose.ui.graphics.Color.White.copy(alpha = 0.05f)), // Border Top conceptually
+        // Real border only top? For now full border is fine or drawBehind.
+    ) {
+        Row(
+            modifier = Modifier.fillMaxSize().padding(bottom = 16.dp), // pb-6
+            horizontalArrangement = Arrangement.SpaceAround, // Space Around handles the gaps
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Dashboard (FLOW)
+            NavBarItem(
+                selected = currentRoute == SecretaryRoute.Dashboard.route,
+                icon = Icons.Default.Dashboard,
+                label = "FLOW",
+                onClick = { onItemClick(SecretaryRoute.Dashboard) }
+            )
+            
+            // Schedule (BOOK)
+            NavBarItem(
+                selected = currentRoute == SecretaryRoute.Schedule.route,
+                icon = Icons.Default.CalendarMonth,
+                label = "BOOK",
+                onClick = { onItemClick(SecretaryRoute.Schedule) }
+            )
+            
+            // GAP
+             Spacer(modifier = Modifier.width(64.dp))
+             
+            // Operations (TECHS)
+            NavBarItem(
+                selected = currentRoute == SecretaryRoute.Operations.route,
+                icon = Icons.Default.PrecisionManufacturing,
+                label = "TECHS",
+                onClick = { onItemClick(SecretaryRoute.Operations) }
+            )
+            
+            // Reports (CLIENTS/STATS)
+            NavBarItem(
+                selected = currentRoute == SecretaryRoute.Reports.route,
+                icon = Icons.Default.Analytics, // Or SettingsAccessibility if mapped to clients
+                label = "STATS",
+                onClick = { onItemClick(SecretaryRoute.Reports) }
+            )
+        }
+    }
+}
+
+@Composable
+fun NavBarItem(selected: Boolean, icon: ImageVector, label: String, onClick: () -> Unit) {
+    val color = if (selected) com.example.zyberauto.ui.theme.PrimaryRed else androidx.compose.ui.graphics.Color.White.copy(alpha = 0.4f)
+    Column(
+        modifier = Modifier.clickable(onClick = onClick).padding(8.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        Icon(icon, null, tint = color)
+        Text(label, style = MaterialTheme.typography.labelSmall, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold, fontSize = 10.sp, color = color)
+    }
+}
+
+@Composable
+fun SecretaryNavHost(
+    navController: NavHostController, 
+    paddingValues: PaddingValues,
+    onLogout: () -> Unit
+) {
     NavHost(
         navController = navController,
-        startDestination = SecretaryRoute.Dashboard.route,
-        modifier = Modifier.padding(paddingValues)
+        startDestination = SecretaryRoute.Dashboard.route
     ) {
         composable(SecretaryRoute.Dashboard.route) {
             SecretaryDashboardScreen(
-                onNavigateToSchedule = { navController.navigate("sec_schedule_appointment") },
-                onNavigateToWalkIn = { navController.navigate("sec_walkin") }
+                onNavigateToSchedule = { 
+                    navController.navigate(SecretaryRoute.Schedule.route) {
+                        popUpTo(navController.graph.findStartDestination().id) {
+                            saveState = true
+                        }
+                        launchSingleTop = true
+                        restoreState = true
+                    }
+                },
+                onNavigateToWalkIn = { navController.navigate("sec_walkin") },
+                onNavigateToPending = { navController.navigate(SecretaryRoute.BookingRequests.route) },
+                onNavigateToInquiries = { navController.navigate(SecretaryRoute.Inquiries.route) }
             )
         }
-        composable(SecretaryRoute.Appointments.route) {
-            com.example.zyberauto.presentation.secretary.SecretaryAppointmentsScreen(
-                 onNavigateToSchedule = { navController.navigate("sec_schedule_appointment") },
-                 onNavigateToWalkIn = { navController.navigate("sec_walkin") }
+        
+        // Schedule Tab
+        composable(SecretaryRoute.Schedule.route) {
+            SecretaryScheduleWrapperScreen(
+                onNavigateToSchedule = { /* Already here */ },
+                onNavigateToWalkIn = { navController.navigate("sec_walkin") },
+                onNavigateToBookingDetails = { bookingId ->
+                    navController.navigate("sec_booking_details/$bookingId")
+                }
             )
         }
+
+        // Operations Tab
+        composable(SecretaryRoute.Operations.route) {
+            SecretaryOperationsScreen(
+                onNavigateTo = { route -> navController.navigate(route) }
+            )
+        }
+
+        // Reports Tab
+        composable(SecretaryRoute.Reports.route) {
+             com.example.zyberauto.presentation.secretary.reports.ReportsScreen(
+                 onNavigateToRevenue = {
+                     navController.navigate("sec_reports_revenue")
+                 }
+             )
+        }
+        
+        // --- Nested / Hidden Routes ---
+
         composable(SecretaryRoute.Customers.route) {
             com.example.zyberauto.presentation.secretary.customers.CustomersScreen()
         }
         composable(SecretaryRoute.BookingRequests.route) {
-            com.example.zyberauto.presentation.secretary.bookings.BookingRequestsScreen(
+            // Accessed via Schedule Tab now, but keeping route if needed for direct link
+             com.example.zyberauto.presentation.secretary.bookings.BookingRequestsScreen(
                 onNavigateToDetails = { bookingId ->
                     navController.navigate("sec_booking_details/$bookingId")
                 }
@@ -218,13 +308,7 @@ fun SecretaryNavHost(navController: NavHostController, paddingValues: PaddingVal
         composable(SecretaryRoute.Inquiries.route) {
              com.example.zyberauto.presentation.secretary.inquiries.InquiriesScreen()
         }
-        composable(SecretaryRoute.Reports.route) {
-             com.example.zyberauto.presentation.secretary.reports.ReportsScreen(
-                 onNavigateToRevenue = {
-                     navController.navigate("sec_reports_revenue")
-                 }
-             )
-        }
+
         composable("sec_reports_revenue") {
             com.example.zyberauto.presentation.secretary.reports.RevenueReportScreen(
                 onNavigateBack = { navController.popBackStack() }
@@ -244,7 +328,11 @@ fun SecretaryNavHost(navController: NavHostController, paddingValues: PaddingVal
              com.example.zyberauto.presentation.secretary.inventory.InventoryScreen()
         }
         composable(SecretaryRoute.Settings.route) {
-            com.example.zyberauto.presentation.secretary.settings.SecretarySettingsScreen()
+            com.example.zyberauto.presentation.secretary.settings.SecretarySettingsScreen(
+                onLogout = onLogout,
+                onNavigateBack = { navController.popBackStack() }
+            )
         }
     }
 }
+

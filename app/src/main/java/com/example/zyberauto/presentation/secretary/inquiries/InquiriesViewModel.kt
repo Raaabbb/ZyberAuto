@@ -2,8 +2,8 @@ package com.example.zyberauto.presentation.secretary.inquiries
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.zyberauto.domain.model.Complaint
-import com.example.zyberauto.domain.repository.ComplaintsRepository
+import com.example.zyberauto.domain.model.Inquiry
+import com.example.zyberauto.domain.repository.InquiriesRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -15,36 +15,35 @@ import javax.inject.Inject
 
 @HiltViewModel
 class InquiriesViewModel @Inject constructor(
-    private val repository: ComplaintsRepository
+    private val repository: InquiriesRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<InquiriesUiState>(InquiriesUiState.Loading)
     val uiState: StateFlow<InquiriesUiState> = _uiState.asStateFlow()
 
     init {
-        loadComplaints()
+        loadInquiries()
     }
 
-    private fun loadComplaints() {
+    private fun loadInquiries() {
         viewModelScope.launch {
             _uiState.value = InquiriesUiState.Loading
-            repository.getAllComplaints()
+            repository.getAllInquiries()
                 .catch { e ->
                     _uiState.value = InquiriesUiState.Error(e.message ?: "Failed to load inquiries")
                 }
-                .collectLatest { complaints ->
-                    _uiState.value = InquiriesUiState.Success(complaints)
+                .collectLatest { inquiries ->
+                    _uiState.value = InquiriesUiState.Success(inquiries)
                 }
         }
     }
 
-    fun submitReply(complaintId: String, replyText: String) {
+    fun submitReply(inquiryId: String, replyText: String) {
         viewModelScope.launch {
             try {
-                repository.updateComplaintStatus(complaintId, "REPLIED", replyText)
-                // The flow will automatically update the UI
+                repository.updateInquiryStatus(inquiryId, "REPLIED", replyText)
             } catch (e: Exception) {
-                // Handle error (optionally expose another state stream for one-off events)
+                // Handle error
             }
         }
     }
@@ -52,6 +51,6 @@ class InquiriesViewModel @Inject constructor(
 
 sealed class InquiriesUiState {
     object Loading : InquiriesUiState()
-    data class Success(val complaints: List<Complaint>) : InquiriesUiState()
+    data class Success(val inquiries: List<Inquiry>) : InquiriesUiState()
     data class Error(val message: String) : InquiriesUiState()
 }

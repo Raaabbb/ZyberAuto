@@ -3,7 +3,7 @@ package com.example.zyberauto.presentation.secretary.dashboard
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.zyberauto.domain.repository.AppointmentsRepository
-import com.example.zyberauto.domain.repository.ComplaintsRepository
+import com.example.zyberauto.domain.repository.InquiriesRepository
 import com.example.zyberauto.domain.repository.UserRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -20,7 +20,7 @@ data class DashboardMetrics(
     val todaysAppointments: Int = 0,
     val totalCustomers: Int = 0,
     val totalRevenue: Double = 0.0,
-    val unreadComplaints: Int = 0,
+    val unreadInquiries: Int = 0,
     val monthlyRevenue: List<Float> = emptyList()
 )
 
@@ -28,7 +28,7 @@ data class DashboardMetrics(
 class DashboardViewModel @Inject constructor(
     private val appointmentsRepository: AppointmentsRepository,
     private val userRepository: UserRepository,
-    private val complaintsRepository: ComplaintsRepository
+    private val inquiriesRepository: InquiriesRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<DashboardUiState>(DashboardUiState.Loading)
@@ -45,8 +45,8 @@ class DashboardViewModel @Inject constructor(
             combine(
                 appointmentsRepository.getAppointments(),
                 userRepository.getAllCustomers(),
-                complaintsRepository.getAllComplaints()
-            ) { appointments, customers, complaints ->
+                inquiriesRepository.getAllInquiries()
+            ) { appointments, customers, inquiries ->
                 
                 // Calculate Today's Appointments
                 val calendar = Calendar.getInstance()
@@ -62,8 +62,8 @@ class DashboardViewModel @Inject constructor(
                 val completedAppointments = appointments.filter { it.status == "COMPLETED" }
                 val totalRevenue = completedAppointments.sumOf { it.price }
 
-                // Calculate Unread Complaints
-                val unreadCount = complaints.count { it.status == "NEW" }
+                // Calculate Unread Inquiries
+                val unreadCount = inquiries.count { it.status == "NEW" }
 
                 // Calculate Monthly Revenue (Simplified for current year)
                 val monthlyRev = MutableList(12) { 0f }
@@ -77,7 +77,7 @@ class DashboardViewModel @Inject constructor(
                     todaysAppointments = todaysCount,
                     totalCustomers = customers.size,
                     totalRevenue = totalRevenue,
-                    unreadComplaints = unreadCount,
+                    unreadInquiries = unreadCount,
                     monthlyRevenue = monthlyRev
                 )
             }

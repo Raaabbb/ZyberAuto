@@ -22,6 +22,7 @@ import com.example.zyberauto.presentation.common.components.AppTextField
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CustomerSettingsScreen(
+    onLogout: () -> Unit,
     viewModel: CustomerSettingsViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -141,6 +142,18 @@ fun CustomerSettingsScreen(
                     ) {
                         Text("Change Password")
                     }
+
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp))
+
+                    Button(
+                        onClick = onLogout,
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                    ) {
+                        Text("Log Out")
+                    }
+                    
+                    Spacer(modifier = Modifier.height(24.dp))
                 }
             }
         }

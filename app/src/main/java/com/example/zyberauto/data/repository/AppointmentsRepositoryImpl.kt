@@ -12,76 +12,64 @@ import java.util.Date
 import javax.inject.Inject
 
 class AppointmentsRepositoryImpl @Inject constructor(
-    private val firestore: FirebaseFirestore
+    private val database: com.google.firebase.database.FirebaseDatabase
 ) : AppointmentsRepository {
 
     override fun getAppointments(): Flow<List<Appointment>> = callbackFlow {
-        val listener = firestore.collection("appointments")
-            .orderBy("dateScheduled", Query.Direction.ASCENDING)
-            .addSnapshotListener { snapshot, error ->
-                if (error != null) {
-                    close(error)
-                    return@addSnapshotListener
-                }
-                
-                val appointments = snapshot?.toObjects(Appointment::class.java) ?: emptyList()
+        val ref = database.getReference("appointments")
+        val listener = object : com.google.firebase.database.ValueEventListener {
+            override fun onDataChange(snapshot: com.google.firebase.database.DataSnapshot) {
+                val appointments = snapshot.children.mapNotNull { 
+                    it.getValue(Appointment::class.java)?.copy(id = it.key ?: "") 
+                }.sortedBy { it.dateScheduled }
                 trySend(appointments)
             }
-        
-        awaitClose { listener.remove() }
+
+            override fun onCancelled(error: com.google.firebase.database.DatabaseError) {
+                close(error.toException())
+            }
+        }
+        ref.addValueEventListener(listener)
+        awaitClose { ref.removeEventListener(listener) }
     }
 
     override fun getBookingsForUser(userId: String): Flow<List<Appointment>> = callbackFlow {
-        var fallbackListener: com.google.firebase.firestore.ListenerRegistration? = null
+        val ref = database.getReference("appointments")
+        // Query by userId
+        val query = ref.orderByChild("userId").equalTo(userId)
         
-        val indexedListener = firestore.collection("appointments")
-            .whereEqualTo("userId", userId)
-            .orderBy("dateScheduled", Query.Direction.DESCENDING)
-            .addSnapshotListener { snapshot, error ->
-                if (error != null) {
-                    // Check for missing index error
-                    if (error.code == com.google.firebase.firestore.FirebaseFirestoreException.Code.FAILED_PRECONDITION) {
-                        android.util.Log.w("ApptRepo", "Index missing, falling back to client-side sorting")
-                        
-                        fallbackListener = firestore.collection("appointments")
-                            .whereEqualTo("userId", userId)
-                            .addSnapshotListener { fbSnap, fbErr ->
-                                if (fbErr != null) {
-                                    close(fbErr)
-                                    return@addSnapshotListener
-                                }
-                                val rawList = fbSnap?.toObjects(Appointment::class.java) ?: emptyList()
-                                trySend(rawList.sortedByDescending { it.dateScheduled })
-                            }
-                    } else {
-                        close(error)
-                    }
-                    return@addSnapshotListener
-                }
-                
-                val appointments = snapshot?.toObjects(Appointment::class.java) ?: emptyList()
+        val listener = object : com.google.firebase.database.ValueEventListener {
+            override fun onDataChange(snapshot: com.google.firebase.database.DataSnapshot) {
+                val appointments = snapshot.children.mapNotNull { 
+                    it.getValue(Appointment::class.java)?.copy(id = it.key ?: "") 
+                }.sortedByDescending { it.dateScheduled } // Client-side sort
                 trySend(appointments)
             }
-        
-        awaitClose { 
-            indexedListener.remove()
-            fallbackListener?.remove()
+
+            override fun onCancelled(error: com.google.firebase.database.DatabaseError) {
+                close(error.toException())
+            }
         }
+        query.addValueEventListener(listener)
+        awaitClose { query.removeEventListener(listener) }
     }
 
     override suspend fun createBooking(appointment: Appointment) {
-        firestore.collection("appointments").add(appointment).await()
+        val ref = database.getReference("appointments").push()
+        // Save with ID if needed, or let push generate key and update it
+        val appointmentWithId = appointment.copy(id = ref.key ?: "")
+        ref.setValue(appointmentWithId).await()
     }
 
     override suspend fun updateAppointmentStatus(appointmentId: String, status: String) {
-        firestore.collection("appointments").document(appointmentId)
-            .update("status", status)
+        database.getReference("appointments").child(appointmentId)
+            .updateChildren(mapOf("status" to status))
             .await()
     }
 
     override suspend fun rejectBooking(appointmentId: String, reason: String) {
-        firestore.collection("appointments").document(appointmentId)
-            .update(
+        database.getReference("appointments").child(appointmentId)
+            .updateChildren(
                 mapOf(
                     "status" to "DECLINED",
                     "rejectionReason" to reason

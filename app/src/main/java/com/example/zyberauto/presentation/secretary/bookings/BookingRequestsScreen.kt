@@ -33,14 +33,10 @@ fun BookingRequestsScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(16.dp)
+                .padding(horizontal = 16.dp) // Removed top padding to reduce header space
         ) {
-            Text(
-                "Booking Requests",
-                style = MaterialTheme.typography.headlineMedium
-            )
-            
-            Spacer(modifier = Modifier.height(16.dp))
+            // Header removed
+
             
             SearchBar(
                 query = searchQuery,

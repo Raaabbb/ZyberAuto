@@ -91,8 +91,8 @@ fun SecretaryAppointmentsScreen(
             .padding(paddingValues)
             .padding(16.dp)
         ) {
-            Text("Appointments", style = MaterialTheme.typography.headlineMedium)
-            Spacer(modifier = Modifier.height(16.dp))
+            // Header removed as it is now part of the Tab/Shell structure
+
 
         // Filters
         LazyRow(
