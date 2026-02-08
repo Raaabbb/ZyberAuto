@@ -9,13 +9,18 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.draw.blur
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.zIndex
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
@@ -58,7 +63,7 @@ fun SecretaryShell(
         SecretaryRoute.Dashboard,
         SecretaryRoute.Schedule,
         SecretaryRoute.Operations,
-        SecretaryRoute.Reports
+        SecretaryRoute.Settings
     )
 
     fun navigateTo(route: String) {
@@ -70,66 +75,46 @@ fun SecretaryShell(
             restoreState = true
         }
     }
+    val backgroundColor = Color(0xFFF5F5F7)
+    
+    // Determine if header should be shown (hide on settings and detail screens)
+    val showHeader = currentRoute != SecretaryRoute.Settings.route &&
+                     currentRoute != "sec_walkin" &&
+                     !currentRoute.orEmpty().startsWith("sec_booking_details")
 
     Scaffold(
-        topBar = {
-            if (currentRoute != SecretaryRoute.Settings.route && currentRoute != SecretaryRoute.Dashboard.route) {
-                CenterAlignedTopAppBar(
-                    title = { 
-                        Text(bottomNavItems.find { it.route == currentRoute }?.title ?: "Secretary Portal")
-                    },
-                    colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                        containerColor = MaterialTheme.colorScheme.primary,
-                        titleContentColor = MaterialTheme.colorScheme.onPrimary,
-                        actionIconContentColor = MaterialTheme.colorScheme.onPrimary,
-                        navigationIconContentColor = MaterialTheme.colorScheme.onPrimary
-                    ),
-                    actions = {
-                        IconButton(onClick = { 
-                            if (currentRoute == SecretaryRoute.Settings.route) {
-                                secretaryNavController.popBackStack()
-                            } else {
-                                secretaryNavController.navigate(SecretaryRoute.Settings.route) {
-                                    launchSingleTop = true 
-                                }
-                            }
-                        }) {
-                            Icon(Icons.Default.Settings, contentDescription = "Settings")
-                        }
-                    }
-                )
-            }
-        },
-        // Removed standard bottomBar
+        containerColor = backgroundColor
     ) { paddingValues ->
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            // Content
-            SecretaryNavHost(
-                navController = secretaryNavController, 
-                paddingValues = PaddingValues(bottom = 100.dp), // Add space for floating bar
-                onLogout = onLogout
-            )
-            
-            // Fixed Bottom Nav + FAB
-            if (currentRoute != SecretaryRoute.Settings.route) {
-                // FAB
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.BottomCenter)
-                        .padding(bottom = 60.dp) // Sits above the bar (height 80dp approx)
-                        .zIndex(2f)
-                ) {
-                    CenterFab(onClick = { secretaryNavController.navigate("sec_walkin") })
+            Column(modifier = Modifier.fillMaxSize()) {
+                // Unified AppHeader (Settings button removed from header)
+                if (showHeader) {
+                    com.example.zyberauto.presentation.common.components.AppHeader(
+                        subtitle = "SECRETARY HUB"
+                    )
                 }
                 
-                // Bottom Bar
+                // Content
+                Box(modifier = Modifier.weight(1f)) {
+                    SecretaryNavHost(
+                        navController = secretaryNavController, 
+                        paddingValues = PaddingValues(bottom = 100.dp),
+                        onLogout = onLogout
+                    )
+                }
+            }
+            
+            // Fixed Bottom Nav with embedded FAB (hide on settings)
+            if (currentRoute != SecretaryRoute.Settings.route) {
                 FixedBottomNav(
                     currentRoute = currentRoute,
                     onItemClick = { navigateTo(it.route) },
+                    onWalkInClick = { secretaryNavController.navigate("sec_walkin") },
+                    onNewBookingClick = { secretaryNavController.navigate("sec_schedule_appointment") },
                     modifier = Modifier.align(Alignment.BottomCenter)
                 )
             }
@@ -138,27 +123,205 @@ fun SecretaryShell(
 }
 
 @Composable
-fun CenterFab(onClick: () -> Unit) {
-    // Red Glow Shadow effect handled by Box or custom modifier if needed, simplifying for standard FAB first
-    // User asked for "Shadow-[0_0_30px_#d41111]"
-    // We can simulate with a Box behind it.
-    Box(contentAlignment = Alignment.Center) {
-        // Glow
+fun SpeedDialFab(
+    onWalkInClick: () -> Unit,
+    onNewBookingClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    var isExpanded by remember { mutableStateOf(false) }
+    
+    // Animation values
+    val scale by androidx.compose.animation.core.animateFloatAsState(
+        targetValue = if (isExpanded) 1.15f else 1f,
+        animationSpec = androidx.compose.animation.core.spring(
+            dampingRatio = androidx.compose.animation.core.Spring.DampingRatioMediumBouncy,
+            stiffness = androidx.compose.animation.core.Spring.StiffnessMedium
+        ),
+        label = "fabScale"
+    )
+    
+    val actionOffset by androidx.compose.animation.core.animateFloatAsState(
+        targetValue = if (isExpanded) 80f else 0f,
+        animationSpec = androidx.compose.animation.core.spring(
+            dampingRatio = androidx.compose.animation.core.Spring.DampingRatioMediumBouncy,
+            stiffness = androidx.compose.animation.core.Spring.StiffnessMedium
+        ),
+        label = "actionOffset"
+    )
+    
+    val actionAlpha by androidx.compose.animation.core.animateFloatAsState(
+        targetValue = if (isExpanded) 1f else 0f,
+        animationSpec = androidx.compose.animation.core.tween(200),
+        label = "actionAlpha"
+    )
+    
+    val rotation by androidx.compose.animation.core.animateFloatAsState(
+        targetValue = if (isExpanded) 45f else 0f,
+        animationSpec = androidx.compose.animation.core.spring(
+            dampingRatio = androidx.compose.animation.core.Spring.DampingRatioMediumBouncy,
+            stiffness = androidx.compose.animation.core.Spring.StiffnessMedium
+        ),
+        label = "fabRotation"
+    )
+    
+    Box(
+        modifier = modifier,
+        contentAlignment = Alignment.BottomCenter
+    ) {
+        // Backdrop when expanded
+        if (isExpanded) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.4f))
+                    .clickable(
+                        indication = null,
+                        interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
+                    ) { isExpanded = false }
+                    .zIndex(10f)
+            )
+        }
+        
+        // Action buttons container - positioned above bottom nav
         Box(
             modifier = Modifier
-                .size(64.dp)
-                .background(com.example.zyberauto.ui.theme.PrimaryRed.copy(alpha=0.4f), androidx.compose.foundation.shape.CircleShape)
-                .blur(16.dp)
-        )
-        IconButton(
-            onClick = onClick,
-            modifier = Modifier
-                .size(64.dp)
-                .background(com.example.zyberauto.ui.theme.PrimaryRed, androidx.compose.foundation.shape.CircleShape)
-                .border(2.dp, androidx.compose.ui.graphics.Color.White.copy(alpha=0.1f), androidx.compose.foundation.shape.CircleShape)
+                .padding(bottom = 48.dp)
+                .zIndex(if (isExpanded) 15f else 3f),
+            contentAlignment = Alignment.Center
         ) {
-            Icon(Icons.Default.Add, contentDescription = "New", tint = androidx.compose.ui.graphics.Color.White, modifier = Modifier.size(32.dp))
+            // Walk-in action (upper-left diagonal)
+            if (actionOffset > 0f) {
+                SpeedDialAction(
+                    icon = Icons.Default.PersonAdd,
+                    label = "Walk-in",
+                    onClick = {
+                        isExpanded = false
+                        onWalkInClick()
+                    },
+                    alpha = actionAlpha,
+                    modifier = Modifier.offset(
+                        x = (-actionOffset * 0.85f).dp,
+                        y = (-actionOffset).dp
+                    )
+                )
+            }
+            
+            // New Booking action (upper-right diagonal)
+            if (actionOffset > 0f) {
+                SpeedDialAction(
+                    icon = Icons.Default.CalendarToday,
+                    label = "Booking",
+                    onClick = {
+                        isExpanded = false
+                        onNewBookingClick()
+                    },
+                    alpha = actionAlpha,
+                    modifier = Modifier.offset(
+                        x = (actionOffset * 0.85f).dp,
+                        y = (-actionOffset).dp
+                    )
+                )
+            }
+            
+            // Main FAB
+            Box(contentAlignment = Alignment.Center) {
+                // Glow effect
+                Box(
+                    modifier = Modifier
+                        .size((64 * scale).dp)
+                        .background(
+                            com.example.zyberauto.ui.theme.PrimaryRed.copy(alpha = 0.4f),
+                            androidx.compose.foundation.shape.CircleShape
+                        )
+                        .blur(16.dp)
+                )
+                
+                // Main button with long-press detection
+                Box(
+                    modifier = Modifier
+                        .size((64 * scale).dp)
+                        .background(
+                            com.example.zyberauto.ui.theme.PrimaryRed,
+                            androidx.compose.foundation.shape.CircleShape
+                        )
+                        .border(
+                            2.dp,
+                            Color.White.copy(alpha = 0.1f),
+                            androidx.compose.foundation.shape.CircleShape
+                        )
+                        .pointerInput(Unit) {
+                            detectTapGestures(
+                                onLongPress = {
+                                    isExpanded = true
+                                },
+                                onTap = {
+                                    if (isExpanded) {
+                                        isExpanded = false
+                                    } else {
+                                        // Quick tap goes to walk-in
+                                        onWalkInClick()
+                                    }
+                                }
+                            )
+                        },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        Icons.Default.Add,
+                        contentDescription = "Actions",
+                        tint = Color.White,
+                        modifier = Modifier
+                            .size(32.dp)
+                            .graphicsLayer { rotationZ = rotation }
+                    )
+                }
+            }
         }
+    }
+}
+
+@Composable
+private fun SpeedDialAction(
+    icon: ImageVector,
+    label: String,
+    onClick: () -> Unit,
+    alpha: Float,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier
+            .graphicsLayer { this.alpha = alpha }
+            .clickable(enabled = alpha > 0.5f) { onClick() },
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .size(48.dp)
+                .background(
+                    com.example.zyberauto.ui.theme.BackgroundDark,
+                    androidx.compose.foundation.shape.CircleShape
+                )
+                .border(
+                    1.dp,
+                    Color.White.copy(alpha = 0.2f),
+                    androidx.compose.foundation.shape.CircleShape
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                icon,
+                contentDescription = label,
+                tint = Color.White,
+                modifier = Modifier.size(24.dp)
+            )
+        }
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall,
+            color = Color.White,
+            fontSize = 10.sp
+        )
     }
 }
 
@@ -166,53 +329,196 @@ fun CenterFab(onClick: () -> Unit) {
 fun FixedBottomNav(
     currentRoute: String?,
     onItemClick: (SecretaryRoute) -> Unit,
+    onWalkInClick: () -> Unit,
+    onNewBookingClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Surface(
-        modifier = modifier.fillMaxWidth().height(96.dp), // h-24 = 96px ~ 96dp? Actually h-24 is 6rem = 96px.
-        color = com.example.zyberauto.ui.theme.BackgroundDark.copy(alpha = 0.9f),
-        border = androidx.compose.foundation.BorderStroke(1.dp, androidx.compose.ui.graphics.Color.White.copy(alpha = 0.05f)), // Border Top conceptually
-        // Real border only top? For now full border is fine or drawBehind.
-    ) {
-        Row(
-            modifier = Modifier.fillMaxSize().padding(bottom = 16.dp), // pb-6
-            horizontalArrangement = Arrangement.SpaceAround, // Space Around handles the gaps
-            verticalAlignment = Alignment.CenterVertically
+    var isFabExpanded by remember { mutableStateOf(false) }
+    
+    // Animation for FAB expansion
+    val fabScale by androidx.compose.animation.core.animateFloatAsState(
+        targetValue = if (isFabExpanded) 1.1f else 1f,
+        animationSpec = androidx.compose.animation.core.spring(
+            dampingRatio = androidx.compose.animation.core.Spring.DampingRatioMediumBouncy
+        ),
+        label = "fabScale"
+    )
+    
+    val rotation by androidx.compose.animation.core.animateFloatAsState(
+        targetValue = if (isFabExpanded) 45f else 0f,
+        animationSpec = androidx.compose.animation.core.spring(
+            dampingRatio = androidx.compose.animation.core.Spring.DampingRatioMediumBouncy
+        ),
+        label = "fabRotation"
+    )
+    
+    val actionOffset by androidx.compose.animation.core.animateFloatAsState(
+        targetValue = if (isFabExpanded) 72f else 0f,
+        animationSpec = androidx.compose.animation.core.spring(
+            dampingRatio = androidx.compose.animation.core.Spring.DampingRatioMediumBouncy,
+            stiffness = androidx.compose.animation.core.Spring.StiffnessMedium
+        ),
+        label = "actionOffset"
+    )
+    
+    val actionAlpha by androidx.compose.animation.core.animateFloatAsState(
+        targetValue = if (isFabExpanded) 1f else 0f,
+        animationSpec = androidx.compose.animation.core.tween(200),
+        label = "actionAlpha"
+    )
+
+    Box(modifier = modifier.fillMaxWidth()) {
+        // Backdrop when expanded
+        if (isFabExpanded) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(200.dp)
+                    .offset(y = (-200).dp)
+                    .background(Color.Black.copy(alpha = 0.4f))
+                    .clickable(
+                        indication = null,
+                        interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
+                    ) { isFabExpanded = false }
+            )
+        }
+        
+        // Speed dial action buttons (positioned above the nav bar)
+        if (actionOffset > 0f) {
+            // Walk-in action (upper-left)
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .offset(
+                        x = (-actionOffset * 0.9f).dp,
+                        y = (-actionOffset + 20).dp
+                    )
+                    .graphicsLayer { alpha = actionAlpha }
+                    .clickable(enabled = actionAlpha > 0.5f) {
+                        isFabExpanded = false
+                        onWalkInClick()
+                    },
+                contentAlignment = Alignment.Center
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Box(
+                        modifier = Modifier
+                            .size(44.dp)
+                            .background(com.example.zyberauto.ui.theme.BackgroundDark, androidx.compose.foundation.shape.CircleShape)
+                            .border(1.dp, Color.White.copy(alpha = 0.2f), androidx.compose.foundation.shape.CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(Icons.Default.PersonAdd, "Walk-in", tint = Color.White, modifier = Modifier.size(22.dp))
+                    }
+                    Spacer(Modifier.height(4.dp))
+                    Text("Walk-in", style = MaterialTheme.typography.labelSmall, color = Color.White, fontSize = 10.sp)
+                }
+            }
+            
+            // New Booking action (upper-right)
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .offset(
+                        x = (actionOffset * 0.9f).dp,
+                        y = (-actionOffset + 20).dp
+                    )
+                    .graphicsLayer { alpha = actionAlpha }
+                    .clickable(enabled = actionAlpha > 0.5f) {
+                        isFabExpanded = false
+                        onNewBookingClick()
+                    },
+                contentAlignment = Alignment.Center
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Box(
+                        modifier = Modifier
+                            .size(44.dp)
+                            .background(com.example.zyberauto.ui.theme.BackgroundDark, androidx.compose.foundation.shape.CircleShape)
+                            .border(1.dp, Color.White.copy(alpha = 0.2f), androidx.compose.foundation.shape.CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(Icons.Default.CalendarToday, "Booking", tint = Color.White, modifier = Modifier.size(22.dp))
+                    }
+                    Spacer(Modifier.height(4.dp))
+                    Text("Booking", style = MaterialTheme.typography.labelSmall, color = Color.White, fontSize = 10.sp)
+                }
+            }
+        }
+        
+        // Bottom Nav Bar
+        Surface(
+            modifier = Modifier.fillMaxWidth().height(80.dp).align(Alignment.BottomCenter),
+            color = com.example.zyberauto.ui.theme.BackgroundDark.copy(alpha = 0.95f),
+            border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.05f))
         ) {
-            // Dashboard (FLOW)
-            NavBarItem(
-                selected = currentRoute == SecretaryRoute.Dashboard.route,
-                icon = Icons.Default.Dashboard,
-                label = "FLOW",
-                onClick = { onItemClick(SecretaryRoute.Dashboard) }
-            )
-            
-            // Schedule (BOOK)
-            NavBarItem(
-                selected = currentRoute == SecretaryRoute.Schedule.route,
-                icon = Icons.Default.CalendarMonth,
-                label = "BOOK",
-                onClick = { onItemClick(SecretaryRoute.Schedule) }
-            )
-            
-            // GAP
-             Spacer(modifier = Modifier.width(64.dp))
-             
-            // Operations (TECHS)
-            NavBarItem(
-                selected = currentRoute == SecretaryRoute.Operations.route,
-                icon = Icons.Default.PrecisionManufacturing,
-                label = "TECHS",
-                onClick = { onItemClick(SecretaryRoute.Operations) }
-            )
-            
-            // Reports (CLIENTS/STATS)
-            NavBarItem(
-                selected = currentRoute == SecretaryRoute.Reports.route,
-                icon = Icons.Default.Analytics, // Or SettingsAccessibility if mapped to clients
-                label = "STATS",
-                onClick = { onItemClick(SecretaryRoute.Reports) }
-            )
+            Row(
+                modifier = Modifier.fillMaxSize().padding(bottom = 8.dp),
+                horizontalArrangement = Arrangement.SpaceEvenly,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Dashboard (FLOW)
+                NavBarItem(
+                    selected = currentRoute == SecretaryRoute.Dashboard.route,
+                    icon = Icons.Default.Dashboard,
+                    label = "FLOW",
+                    onClick = { onItemClick(SecretaryRoute.Dashboard) }
+                )
+                
+                // Schedule (BOOK)
+                NavBarItem(
+                    selected = currentRoute == SecretaryRoute.Schedule.route,
+                    icon = Icons.Default.CalendarMonth,
+                    label = "BOOK",
+                    onClick = { onItemClick(SecretaryRoute.Schedule) }
+                )
+                
+                // CENTER FAB - inline with other items
+                Box(
+                    modifier = Modifier
+                        .size((52 * fabScale).dp)
+                        .background(com.example.zyberauto.ui.theme.PrimaryRed, androidx.compose.foundation.shape.CircleShape)
+                        .border(2.dp, Color.White.copy(alpha = 0.15f), androidx.compose.foundation.shape.CircleShape)
+                        .pointerInput(Unit) {
+                            detectTapGestures(
+                                onLongPress = { isFabExpanded = true },
+                                onTap = {
+                                    if (isFabExpanded) {
+                                        isFabExpanded = false
+                                    } else {
+                                        onWalkInClick()
+                                    }
+                                }
+                            )
+                        },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        Icons.Default.Add,
+                        contentDescription = "Actions",
+                        tint = Color.White,
+                        modifier = Modifier
+                            .size(28.dp)
+                            .graphicsLayer { rotationZ = rotation }
+                    )
+                }
+                 
+                // Operations (TECHS)
+                NavBarItem(
+                    selected = currentRoute == SecretaryRoute.Operations.route,
+                    icon = Icons.Default.PrecisionManufacturing,
+                    label = "TECHS",
+                    onClick = { onItemClick(SecretaryRoute.Operations) }
+                )
+                
+                // Reports (STATS) -> Replaced by Settings
+                NavBarItem(
+                    selected = currentRoute == SecretaryRoute.Settings.route,
+                    icon = Icons.Default.Settings,
+                    label = "SETTINGS",
+                    onClick = { onItemClick(SecretaryRoute.Settings) }
+                )
+            }
         }
     }
 }
@@ -252,19 +558,39 @@ fun SecretaryNavHost(
                     }
                 },
                 onNavigateToWalkIn = { navController.navigate("sec_walkin") },
-                onNavigateToPending = { navController.navigate(SecretaryRoute.BookingRequests.route) },
+                // Navigate to Schedule tab with "Pending" filter instead of separate route
+                onNavigateToPending = { 
+                    navController.navigate("${SecretaryRoute.Schedule.route}?filter=Pending") {
+                        popUpTo(navController.graph.findStartDestination().id) {
+                            saveState = true
+                        }
+                        launchSingleTop = true
+                        restoreState = true
+                    }
+                },
                 onNavigateToInquiries = { navController.navigate(SecretaryRoute.Inquiries.route) }
             )
         }
         
         // Schedule Tab
-        composable(SecretaryRoute.Schedule.route) {
+        composable(
+            route = "${SecretaryRoute.Schedule.route}?filter={filter}",
+            arguments = listOf(androidx.navigation.navArgument("filter") { 
+                defaultValue = "All"
+                nullable = true 
+            })
+        ) { backStackEntry ->
+            val filter = backStackEntry.arguments?.getString("filter") ?: "All"
             SecretaryScheduleWrapperScreen(
                 onNavigateToSchedule = { /* Already here */ },
                 onNavigateToWalkIn = { navController.navigate("sec_walkin") },
                 onNavigateToBookingDetails = { bookingId ->
                     navController.navigate("sec_booking_details/$bookingId")
-                }
+                },
+                onMessageCustomer = { customerId, customerName ->
+                    navController.navigate("sec_chat_direct/$customerId/$customerName")
+                },
+                initialFilter = filter
             )
         }
 
@@ -306,7 +632,47 @@ fun SecretaryNavHost(
             )
         }
         composable(SecretaryRoute.Inquiries.route) {
-             com.example.zyberauto.presentation.secretary.inquiries.InquiriesScreen()
+             com.example.zyberauto.presentation.secretary.chat.SecretaryChatListScreen(
+                 onNavigateBack = { navController.popBackStack() },
+                 onNavigateToChat = { conversationId ->
+                     navController.navigate("sec_chat/$conversationId")
+                 }
+             )
+        }
+        
+        // Secretary Chat Route (real-time chat with customer)
+        composable(
+            route = "sec_chat/{conversationId}",
+            arguments = listOf(androidx.navigation.navArgument("conversationId") { type = androidx.navigation.NavType.StringType })
+        ) { backStackEntry ->
+            val conversationId = backStackEntry.arguments?.getString("conversationId") ?: ""
+            com.example.zyberauto.presentation.secretary.chat.SecretaryChatScreen(
+                conversationId = conversationId,
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+        
+        // Direct chat route - finds or creates conversation with customer
+        composable(
+            route = "sec_chat_direct/{customerId}/{customerName}",
+            arguments = listOf(
+                androidx.navigation.navArgument("customerId") { type = androidx.navigation.NavType.StringType },
+                androidx.navigation.navArgument("customerName") { type = androidx.navigation.NavType.StringType }
+            )
+        ) { backStackEntry ->
+            val customerId = backStackEntry.arguments?.getString("customerId") ?: ""
+            val customerName = backStackEntry.arguments?.getString("customerName") ?: ""
+            
+            com.example.zyberauto.presentation.secretary.chat.SecretaryChatDirectScreen(
+                customerId = customerId,
+                customerName = customerName,
+                onNavigateBack = { navController.popBackStack() },
+                onNavigateToChat = { conversationId ->
+                    navController.navigate("sec_chat/$conversationId") {
+                        popUpTo("sec_chat_direct/$customerId/$customerName") { inclusive = true }
+                    }
+                }
+            )
         }
 
         composable("sec_reports_revenue") {

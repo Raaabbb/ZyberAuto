@@ -1,80 +1,75 @@
 package com.example.zyberauto.data.repository
 
-import com.example.zyberauto.domain.repository.UserRepository
-import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.firestore.FirebaseFirestore
-import kotlinx.coroutines.channels.awaitClose
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.callbackFlow
-import kotlinx.coroutines.tasks.await
-import javax.inject.Inject
-
+import com.example.zyberauto.data.local.LocalDataHelper
 import com.example.zyberauto.domain.model.User
+import com.example.zyberauto.domain.repository.UserRepository
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
+import javax.inject.Inject
+import javax.inject.Singleton
 
-
+@Singleton
 class UserRepositoryImpl @Inject constructor(
-    private val auth: FirebaseAuth,
-    private val firestore: FirebaseFirestore
+    private val localDataHelper: LocalDataHelper
 ) : UserRepository {
 
+    private val userFile = "users.json"
+
     override suspend fun getUserRole(uid: String): String? {
-        val document = firestore.collection("users").document(uid).get().await()
-        return document.getString("role")
+        val user = getUserProfile(uid)
+        return user?.role
     }
 
     override suspend fun createUserProfile(user: User) {
-        try {
-            firestore.collection("users").document(user.uid).set(user).await()
-        } catch (e: Exception) {
-            e.printStackTrace()
-            throw e
+        val users = localDataHelper.readList(userFile, User::class.java).toMutableList()
+        // Check if user exists to avoid duplicates
+        val index = users.indexOfFirst { it.uid == user.uid }
+        if (index != -1) {
+            users[index] = user
+            localDataHelper.writeList(userFile, users)
+        } else {
+            localDataHelper.addItem(userFile, user, User::class.java)
         }
     }
 
     override suspend fun getUserProfile(uid: String): User? {
-        return try {
-            val document = firestore.collection("users").document(uid).get().await()
-            document.toObject(User::class.java)
-        } catch (e: Exception) {
-            e.printStackTrace()
-            null
-        }
+        val users = localDataHelper.readList(userFile, User::class.java)
+        return users.find { it.uid == uid }
     }
 
     override suspend fun updateUserProfile(user: User) {
-        try {
-            // Merge update to avoid overwriting unrelated fields if any
-            val updates = mapOf(
-                "name" to user.name,
-                "phoneNumber" to user.phoneNumber,
-                "email" to user.email // In case they changed it, though Auth handles email separately usually
-            )
-            firestore.collection("users").document(user.uid).update(updates).await()
-        } catch (e: Exception) {
-            e.printStackTrace()
-            throw e
-        }
+        localDataHelper.updateItem(
+            userFile,
+            User::class.java,
+            predicate = { it.uid == user.uid },
+            update = { user }
+        )
     }
     
     override suspend fun updateUserVerificationStatus(uid: String, isVerified: Boolean) {
-        try {
-            firestore.collection("users").document(uid).update("isVerified", isVerified).await()
-        } catch (e: Exception) {
-           e.printStackTrace()
-        }
+        localDataHelper.updateItem(
+            userFile,
+            User::class.java,
+            predicate = { it.uid == uid },
+            update = { it.copy(isVerified = isVerified) }
+        )
     }
 
-    override fun getAllCustomers(): Flow<List<User>> = callbackFlow {
-        val listener = firestore.collection("users")
-            .whereEqualTo("role", "CUSTOMER")
-            .addSnapshotListener { snapshot, error ->
-                if (error != null) {
-                    close(error)
-                    return@addSnapshotListener
-                }
-                val users = snapshot?.toObjects(User::class.java) ?: emptyList()
-                trySend(users)
-            }
-        awaitClose { listener.remove() }
+    override suspend fun getUserEmailByPhone(phoneNumber: String): String? {
+        val users = localDataHelper.readList(userFile, User::class.java)
+        return users.find { it.phoneNumber == phoneNumber }?.email
+    }
+
+    override fun getAllCustomers(): Flow<List<User>> = flow {
+        val users = localDataHelper.readList(userFile, User::class.java)
+        emit(users.filter { it.role == "CUSTOMER" })
+    }
+    
+    // Additional method for AuthViewModel to Validate Login locally
+    suspend fun validateUser(email: String, password: String): User? {
+        val users = localDataHelper.readList(userFile, User::class.java)
+        return users.find { 
+            it.email.equals(email, ignoreCase = true) && it.password == password 
+        }
     }
 }

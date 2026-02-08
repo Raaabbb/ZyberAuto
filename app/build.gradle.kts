@@ -4,7 +4,6 @@ plugins {
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.hilt.android)
     alias(libs.plugins.ksp)
-    alias(libs.plugins.google.services)
 }
 
 android {
@@ -31,6 +30,13 @@ android {
             signingConfig = signingConfigs.getByName("debug")
         }
     }
+    
+    // Disable baseline profile installation to avoid INSTALL_BASELINE_PROFILE_FAILED
+    @Suppress("UnstableApiUsage")
+    experimentalProperties["android.experimental.art-profile-r8-rewriting"] = false
+    @Suppress("UnstableApiUsage")
+    experimentalProperties["android.experimental.r8.dex-startup-optimization"] = false
+    
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
@@ -40,6 +46,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 
@@ -67,16 +74,13 @@ dependencies {
     implementation(libs.androidx.datastore.preferences)
     
     // Coroutines
-    // Coroutines
     implementation(libs.kotlinx.coroutines.android)
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.7.3")
 
-    // Firebase
-    implementation(platform("com.google.firebase:firebase-bom:33.1.2"))
-    implementation("com.google.firebase:firebase-analytics")
-    implementation("com.google.firebase:firebase-auth")
-    implementation("com.google.firebase:firebase-firestore")
-    implementation("com.google.firebase:firebase-database")
+    // Local Storage (Gson)
+    implementation("com.google.code.gson:gson:2.10.1")
+
+    // Coil for image loading
+    implementation("io.coil-kt:coil-compose:2.5.0")
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

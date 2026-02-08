@@ -1,0 +1,218 @@
+================================================================================
+         LOCAL MOCK DATA POPULATION AT APP STARTUP - IMPLEMENTATION PLAN
+================================================================================
+Date: February 4, 2026
+Status: 📋 COMPLETE
+Related Feature: Estimated Cost & Inventory Integration
+================================================================================
+
+--------------------------------------------------------------------------------
+OVERVIEW
+--------------------------------------------------------------------------------
+
+PURPOSE:
+Automatically populate Local JSON Storage with mock data when the app starts up, 
+allowing immediate testing of features without manual data entry.
+
+TRIGGER:
+- App startup (Application.onCreate())
+- One-time execution (checked via internal file existence)
+- Development/debug builds only (optional: also in release)
+
+TARGET STORAGE:
+- Local JSON Files
+- Location: json_storage/ directory
+
+--------------------------------------------------------------------------------
+SECTION 1: MOCK DATA STRUCTURE
+--------------------------------------------------------------------------------
+
+1.1 INVENTORY ITEMS
+   - Oil Change Parts (Filter, Oil)
+   - Brake Service Parts (Fluid, Pads)
+   - Detailing Supplies
+   - Engine Tune-Up Parts
+   - AC Service Parts
+   - Battery & General Fluids
+
+1.2 USERS
+   - Customer: Juan Dela Cruz (juan@example.com)
+   - Secretary: Galileo (gleomir@gmail.com)
+
+1.3 VEHICLES
+   - Toyota Vios (Plate: ABC 1234) - Owned by Juan Dela Cruz
+
+1.4 APPOINTMENTS
+   - Change Oil for Toyota Vios
+   - Date: Feb 10, 2026
+   - Status: Pending
+
+1.5 CHATS & MESSAGES
+   - Conversation: "Inquiry about tires"
+   - Message: "Is this available?"
+
+--------------------------------------------------------------------------------
+SECTION 2: IMPLEMENTATION ARCHITECTURE
+--------------------------------------------------------------------------------
+
+2.1 DATA CLASS FOR MOCK ITEMS
+    Location: domain/model/MockData.kt
+    
+    object MockData {
+        
+        // --- INVENTORY ---
+        fun getInitialInventory(): List<InventoryItem> {
+            return listOf(
+                // Oil Change Parts
+                InventoryItem(
+                    id = "inv_001",
+                    name = "Oil Filter",
+                    category = "Filters",
+                    unitPrice = 250.0,
+                    stockQuantity = 50,
+                    unit = "piece",
+                    reorderLevel = 10,
+                    lastUpdated = System.currentTimeMillis()
+                ),
+                InventoryItem(
+                    id = "inv_002",
+                    name = "Engine Oil",
+                    category = "Fluids",
+                    unitPrice = 450.0,
+                    stockQuantity = 100,
+                    unit = "liter",
+                    reorderLevel = 20,
+                    lastUpdated = System.currentTimeMillis()
+                ),
+                // ... (Other items as defined previously)
+            )
+        }
+
+        // --- USERS ---
+        fun getInitialUsers(): List<User> {
+            return listOf(
+                User(
+                    uid = "user_123456789",
+                    email = "juan@example.com",
+                    password = "password123",
+                    role = "CUSTOMER",
+                    name = "Juan Dela Cruz",
+                    phoneNumber = "+639171234567",
+                    isVerified = true
+                ),
+                User(
+                    uid = "user_secretary_001",
+                    email = "gleomir@gmail.com",
+                    password = "adminpassword",
+                    role = "SECRETARY",
+                    name = "Galileo",
+                    phoneNumber = "+639171234567",
+                    isVerified = true
+                )
+            )
+        }
+
+        // --- VEHICLES ---
+        fun getInitialVehicles(): List<Vehicle> {
+            return listOf(
+                Vehicle(
+                    id = "car_001",
+                    customerId = "user_123456789",
+                    model = "Toyota Vios",
+                    vehicleType = "Sedan",
+                    plateNumber = "ABC 1234",
+                    year = "2022",
+                    dateRegistered = 1707094200000
+                )
+            )
+        }
+
+        // --- APPOINTMENTS ---
+        fun getInitialAppointments(): List<Appointment> {
+            return listOf(
+                Appointment(
+                    id = "appt_001",
+                    userId = "user_123456789",
+                    customerName = "Juan Dela Cruz",
+                    plateNumber = "ABC 1234",
+                    vehicleModel = "Toyota Vios",
+                    vehicleType = "Sedan",
+                    serviceType = "Change Oil",
+                    status = "PENDING",
+                    dateScheduled = "Feb 10, 2026, 8:00:00 AM",
+                    timeSlot = "08:00 AM",
+                    timeSlotEnd = "09:00 AM",
+                    estimatedDurationMinutes = 60,
+                    price = 0.0,
+                    createdAt = "Feb 5, 2026, 12:00:00 PM"
+                )
+            )
+        }
+
+        // --- CHATS ---
+        fun getInitialChats(): List<ChatConversation> {
+            return listOf(
+                ChatConversation(
+                    id = "conv_001",
+                    customerId = "user_123456789",
+                    customerName = "Juan Dela Cruz",
+                    subject = "Inquiry about tires",
+                    lastMessage = "Is this available?",
+                    lastMessageTime = 1707094200000,
+                    lastSenderType = "CUSTOMER",
+                    status = "ACTIVE"
+                )
+            )
+        }
+        
+        // --- MESSAGES ---
+        fun getInitialMessages(): List<ChatMessage> {
+            return listOf(
+                ChatMessage(
+                    id = "msg_001",
+                    conversationId = "conv_001",
+                    senderId = "user_123456789",
+                    senderType = "CUSTOMER",
+                    senderName = "Juan Dela Cruz",
+                    message = "Is this available?",
+                    imageUrl = "",
+                    timestamp = 1707094200000,
+                    status = "read"
+                )
+            )
+        }
+    }
+
+2.2 DATA SEEDER SERVICE (Implemented via LocalDataHelper)
+    
+    The `LocalDataHelper` class handles the data seeding mechanism.
+    On initialization, it checks if the `json_storage` directory exists in the app's private storage.
+    If not, (or if specific files are missing), it copies the seed files from `assets/json_storage/`.
+
+--------------------------------------------------------------------------------
+SECTION 3: IMPLEMENTATION STEPS (Completed)
+--------------------------------------------------------------------------------
+
+STEP 1: Create Seed Files in Assets
+    - users.json
+    - inventory.json
+    - vehicles.json
+    - appointments.json
+    - chats.json
+    - messages.json
+    
+STEP 2: Implement LocalDataHelper
+    - Logic to check if files exist
+    - Logic to copy from assets if missing
+
+STEP 3: Verify Data
+    - Run app
+    - Check internal storage directory via Device Explorer
+    - Verify data appears in various screens
+
+--------------------------------------------------------------------------------
+CONCLUSION
+--------------------------------------------------------------------------------
+
+The migration to local JSON storage provides a simpler, offline-first architecture. 
+The mock data defined above serves as the initial state of the application.

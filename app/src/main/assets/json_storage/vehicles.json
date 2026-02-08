@@ -1,0 +1,11 @@
+[
+    {
+        "id": "car_001",
+        "customerId": "user_123456789",
+        "model": "Toyota Vios",
+        "vehicleType": "Sedan",
+        "plateNumber": "ABC 1234",
+        "year": "2022",
+        "dateRegistered": 1707094200000
+    }
+]

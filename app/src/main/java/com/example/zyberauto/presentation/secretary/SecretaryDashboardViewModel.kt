@@ -3,9 +3,7 @@ package com.example.zyberauto.presentation.secretary
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.zyberauto.domain.model.Appointment
-import com.example.zyberauto.domain.model.Inquiry
 import com.example.zyberauto.domain.repository.AppointmentsRepository
-import com.example.zyberauto.domain.repository.InquiriesRepository
 import com.example.zyberauto.domain.repository.UserRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
@@ -22,7 +20,6 @@ import javax.inject.Inject
 @HiltViewModel
 class SecretaryDashboardViewModel @Inject constructor(
     private val appointmentsRepository: AppointmentsRepository,
-    private val inquiriesRepository: InquiriesRepository,
     private val userRepository: UserRepository
 ) : ViewModel() {
 
@@ -30,24 +27,22 @@ class SecretaryDashboardViewModel @Inject constructor(
     private val manilaTimeZone = TimeZone.getTimeZone("Asia/Manila")
 
     private val _appointments = appointmentsRepository.getAppointments()
-    private val _inquiries = inquiriesRepository.getAllInquiries()
     private val _customers = userRepository.getAllCustomers()
     
-    // Ticker that emits every 60 seconds to refresh time-based calculations
+    // Ticker that emits every 5 seconds to refresh time-based calculations
     private val ticker: Flow<Long> = flow {
         while (true) {
             emit(System.currentTimeMillis())
-            delay(60_000L) // Refresh every 60 seconds
+            delay(5_000L) // Refresh every 5 seconds
         }
     }
 
     // Combined UI State with real-time data + auto-refresh
     val uiState: StateFlow<DashboardUiState> = combine(
         _appointments,
-        _inquiries,
         _customers,
         ticker
-    ) { appointments, inquiries, customers, _ ->
+    ) { appointments, customers, _ ->
         
         val today = Calendar.getInstance(manilaTimeZone)
         val todayYear = today.get(Calendar.YEAR)
@@ -101,9 +96,6 @@ class SecretaryDashboardViewModel @Inject constructor(
         // Efficiency change compared to last week
         val efficiencyChange = thisWeekEfficiency - lastWeekEfficiency
 
-        // Unread Inquiries (status = NEW)
-        val unreadInquiries = inquiries.count { it.status == "NEW" }
-
         // Chart Data: Last 7 days appointment counts
         val chartData = (0..6).map { daysAgo ->
             val targetDay = Calendar.getInstance(manilaTimeZone).apply {
@@ -136,7 +128,6 @@ class SecretaryDashboardViewModel @Inject constructor(
                 pendingRequests = pendingRequests,
                 efficiencyRate = thisWeekEfficiency,
                 efficiencyChange = efficiencyChange,
-                unreadInquiries = unreadInquiries,
                 chartData = chartData,
                 totalCustomers = customers.size
             ),
@@ -165,7 +156,6 @@ data class DashboardStats(
     val pendingRequests: Int,
     val efficiencyRate: Float,
     val efficiencyChange: Float, // Positive = improvement over last week
-    val unreadInquiries: Int,
     val chartData: List<Int>,
     val totalCustomers: Int
 )

@@ -1,0 +1,234 @@
+================================================================================
+RESCHEDULE APPOINTMENT FEATURE - ALL CHANGES
+================================================================================
+Feature: Allow customers to reschedule PENDING or ACCEPTED appointments
+         with date/time validation and slot availability checking.
+Date: February 4, 2026
+================================================================================
+
+SUMMARY OF CHANGES
+------------------
+Customers can now reschedule their appointments from the "My Bookings" screen.
+- Available for PENDING and ACCEPTED appointments
+- Cannot reschedule COMPLETED, DECLINED, or IN_PROGRESS appointments
+- Validates date (not in past)
+- Validates time slot (within business hours)
+- Checks slot availability (not fully booked)
+- Resets status to PENDING for re-approval by secretary
+
+================================================================================
+FILE 1: AppointmentsRepository.kt
+================================================================================
+Path: app/src/main/java/com/example/zyberauto/domain/repository/AppointmentsRepository.kt
+
+CHANGES MADE:
+
+1. ADDED NEW METHOD (Lines 37-46):
+   ```kotlin
+   suspend fun rescheduleAppointment(
+       appointmentId: String,
+       newDate: Date,
+       newTimeSlot: String,
+       newTimeSlotEnd: String,
+       estimatedDurationMinutes: Int
+   )
+   ```
+
+================================================================================
+FILE 2: AppointmentsRepositoryImpl.kt
+================================================================================
+Path: app/src/main/java/com/example/zyberauto/data/repository/AppointmentsRepositoryImpl.kt
+
+CHANGES MADE:
+
+1. ADDED rescheduleAppointment() IMPLEMENTATION (Lines 199-220):
+   - Updates Firebase Realtime Database with new schedule
+   - Fields updated:
+     - dateScheduled: New date (stored as timestamp)
+     - timeSlot: New start time
+     - timeSlotEnd: New end time
+     - estimatedDurationMinutes: Recalculated duration
+     - status: Reset to "PENDING"
+     - assignedMechanic: Reset to 0 (cleared)
+
+================================================================================
+FILE 3: CustomerBookingsViewModel.kt
+================================================================================
+Path: app/src/main/java/com/example/zyberauto/presentation/customer/bookings/CustomerBookingsViewModel.kt
+
+CHANGES MADE:
+
+1. ADDED IMPORTS (Lines 5-9):
+   - import com.example.zyberauto.common.AppConstants
+   - import java.text.SimpleDateFormat
+   - import java.util.Calendar
+   - import java.util.Date
+   - import java.util.Locale
+
+2. ADDED STATE FLOWS (Lines 30-36):
+   - _rescheduleState / rescheduleState: RescheduleState
+   - _isSlotAvailable / isSlotAvailable: Boolean
+
+3. NEW FUNCTION: checkSlotAvailability(date, timeSlot) (Lines 60-69):
+   - Checks if a time slot is fully booked
+   - Updates _isSlotAvailable state
+   - Used for real-time feedback in dialog
+
+4. NEW FUNCTION: rescheduleAppointment(appointment, newDateString, newTimeSlot) (Lines 75-155):
+   Validation Steps:
+   a) Parse date from "MM/dd/yyyy" format
+   b) Check date is not in the past
+   c) Validate time slot is in AppConstants.TimeSlots
+   d) Combine date + time into scheduledDate
+   e) Check if slot is fully booked
+   f) Calculate new end time using AppConstants.calculateServiceDuration()
+   g) Call repository.rescheduleAppointment()
+
+   Error Handling:
+   - Returns RescheduleState.Error with descriptive message
+   - Catches exceptions and provides fallback message
+
+5. NEW FUNCTION: resetRescheduleState() (Lines 157-160):
+   - Resets state to Idle
+   - Called after dialog closes
+
+6. NEW SEALED CLASS: RescheduleState (Lines 169-174):
+   - Idle: No reschedule in progress
+   - Loading: Reschedule request being processed
+   - Success: Reschedule completed
+   - Error(message): Validation or network error
+
+================================================================================
+FILE 4: CustomerBookingsScreen.kt
+================================================================================
+Path: app/src/main/java/com/example/zyberauto/presentation/customer/bookings/CustomerBookingsScreen.kt
+
+CHANGES MADE:
+
+1. ADDED IMPORTS (Lines 13-14, 29):
+   - import androidx.compose.material.icons.filled.Edit
+   - import androidx.compose.runtime.*
+   - import com.example.zyberauto.common.AppConstants
+
+2. ADDED STATE IN CustomerBookingsScreen (Lines 53-58):
+   - rescheduleState from viewModel
+   - isSlotAvailable from viewModel
+   - showRescheduleDialog: Boolean
+   - appointmentToReschedule: Appointment?
+
+3. ADDED LaunchedEffect FOR SUCCESS HANDLING (Lines 63-69):
+   - When rescheduleState is Success:
+     - Close dialog
+     - Clear appointmentToReschedule
+     - Reset viewModel state
+
+4. UPDATED CustomerBookingCard CALL (Lines 117-125):
+   - Added onRescheduleClick parameter
+   - Sets appointmentToReschedule and shows dialog
+
+5. ADDED RescheduleDialog INVOCATION (Lines 130-148):
+   - Shows dialog when showRescheduleDialog is true
+   - Passes all required callbacks and state
+
+6. UPDATED CustomerBookingCard FUNCTION (Lines 237-252):
+   - Added onRescheduleClick: () -> Unit parameter
+   - Added canReschedule logic:
+     ```kotlin
+     val canReschedule = appointment.status == "PENDING" || appointment.status == "ACCEPTED"
+     ```
+
+7. ADDED RESCHEDULE BUTTON IN CARD (Lines 345-368):
+   - OutlinedButton with Edit icon
+   - Only shown when canReschedule is true
+   - Red outline color matching app theme
+
+8. NEW COMPOSABLE: RescheduleDialog (Lines 430-590):
+   UI Components:
+   - Current schedule info card (read-only)
+   - Date input field (MM/DD/YYYY format)
+   - Time slot dropdown (ExposedDropdownMenuBox)
+   - Slot availability warning (red card)
+   - Error message display
+   - Confirm/Cancel buttons
+
+   Features:
+   - Real-time slot availability check (LaunchedEffect)
+   - Loading state on button
+   - Disable confirm when slot unavailable
+
+================================================================================
+VALIDATION RULES
+================================================================================
+
+1. DATE VALIDATION:
+   - Must be in MM/DD/YYYY format
+   - Cannot be in the past (compared to today at midnight)
+   - Error: "Invalid date format. Use MM/DD/YYYY"
+   - Error: "Cannot reschedule to a past date"
+
+2. TIME SLOT VALIDATION:
+   - Must be in AppConstants.TimeSlots list
+   - Error: "Invalid time slot. Please select a valid time."
+
+3. SLOT AVAILABILITY:
+   - Checks isTimeSlotFullyBooked() in repository
+   - All 3 mechanics must be available
+   - Error: "This time slot is fully booked. All mechanics are busy."
+
+4. DURATION CALCULATION:
+   - Uses AppConstants.calculateServiceDuration(serviceType, vehicleType)
+   - End time = Start time + Duration
+   - Rounded to nearest 15 minutes
+
+================================================================================
+USER FLOW
+================================================================================
+
+1. Customer opens "My Bookings" screen
+2. Sees list of their appointments
+3. PENDING and ACCEPTED appointments show "Reschedule" button
+4. Customer taps "Reschedule" on an appointment
+5. Dialog opens showing:
+   - Current schedule info
+   - Date input field (pre-filled with current date)
+   - Time slot dropdown (pre-filled with current time)
+6. Customer changes date and/or time
+7. System checks slot availability in real-time
+8. If slot unavailable: Shows red warning
+9. If slot available: Customer taps "Reschedule"
+10. System validates and updates appointment
+11. Status changes to PENDING (for re-approval)
+12. Dialog closes, list refreshes automatically
+
+================================================================================
+FIREBASE DATA CHANGES
+================================================================================
+
+When rescheduling, the following fields are updated:
+- dateScheduled: New timestamp (Long)
+- timeSlot: New start time string (e.g., "11:00 AM")
+- timeSlotEnd: New end time string (e.g., "12:15 PM")
+- estimatedDurationMinutes: Recalculated duration
+- status: "PENDING" (reset for re-approval)
+- assignedMechanic: 0 (cleared, will be reassigned)
+
+================================================================================
+TESTING CHECKLIST
+================================================================================
+[ ] Open My Bookings screen
+[ ] PENDING appointment shows Reschedule button
+[ ] ACCEPTED appointment shows Reschedule button
+[ ] COMPLETED appointment does NOT show Reschedule button
+[ ] DECLINED appointment does NOT show Reschedule button
+[ ] Click Reschedule - dialog opens with current schedule
+[ ] Change date to past date - shows error
+[ ] Change date to valid future date - no error
+[ ] Select fully booked time slot - shows warning
+[ ] Select available time slot - no warning
+[ ] Click Reschedule with available slot - appointment updates
+[ ] Status changes to PENDING
+[ ] Assigned mechanic is cleared
+[ ] Dialog closes after success
+[ ] List updates automatically
+
+================================================================================

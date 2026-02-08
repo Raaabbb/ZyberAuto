@@ -7,8 +7,10 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.zyberauto.presentation.auth.LoginScreen
 import com.example.zyberauto.presentation.auth.RegisterScreen
+import com.example.zyberauto.presentation.splash.SplashScreen
 
 sealed class Route(val route: String) {
+    object Splash : Route("splash")
     object Login : Route("login")
     object Register : Route("register")
     object CustomerDashboard : Route("customer_dashboard")
@@ -18,12 +20,22 @@ sealed class Route(val route: String) {
 @Composable
 fun AppNavigation(
     navController: NavHostController = rememberNavController(),
-    startDestination: String = Route.Login.route
+    startDestination: String = Route.Splash.route
 ) {
     NavHost(
         navController = navController,
         startDestination = startDestination
     ) {
+        composable(Route.Splash.route) {
+            SplashScreen(
+                onNavigate = { destination ->
+                    navController.navigate(destination) {
+                        popUpTo(Route.Splash.route) { inclusive = true }
+                    }
+                }
+            )
+        }
+
         composable(Route.Login.route) {
             LoginScreen(
                 onLoginSuccess = { role ->
@@ -59,7 +71,7 @@ fun AppNavigation(
                 rootNavController = navController,
                 onLogout = {
                     navController.navigate(Route.Login.route) {
-                        popUpTo(0)
+                        popUpTo(navController.graph.id) { inclusive = true }
                     }
                 }
             )
@@ -70,7 +82,7 @@ fun AppNavigation(
                rootNavController = navController,
                onLogout = {
                    navController.navigate(Route.Login.route) {
-                       popUpTo(0)
+                       popUpTo(navController.graph.id) { inclusive = true }
                    }
                }
            )

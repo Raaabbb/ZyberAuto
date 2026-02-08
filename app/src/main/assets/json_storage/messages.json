@@ -1,0 +1,13 @@
+[
+    {
+        "id": "msg_001",
+        "conversationId": "conv_001",
+        "senderId": "user_123456789",
+        "senderType": "CUSTOMER",
+        "senderName": "Juan Dela Cruz",
+        "message": "Is this available?",
+        "imageUrl": "",
+        "timestamp": 1707094200000,
+        "status": "read"
+    }
+]

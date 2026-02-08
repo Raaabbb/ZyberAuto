@@ -7,11 +7,15 @@ import com.example.zyberauto.presentation.secretary.bookings.BookingRequestsScre
 fun SecretaryScheduleWrapperScreen(
     onNavigateToSchedule: () -> Unit,
     onNavigateToWalkIn: () -> Unit,
-    onNavigateToBookingDetails: (String) -> Unit
+    onNavigateToBookingDetails: (String) -> Unit,
+    onMessageCustomer: (customerId: String, customerName: String) -> Unit = { _, _ -> },
+    initialFilter: String = "All"
 ) {
     // User requested to consolidate Appointments/Requests into a single view 
     // using the BookingRequests UI style.
     BookingRequestsScreen(
-        onNavigateToDetails = onNavigateToBookingDetails
+        onNavigateToDetails = onNavigateToBookingDetails,
+        onMessageCustomer = onMessageCustomer,
+        initialFilter = initialFilter
     )
 }

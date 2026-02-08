@@ -1,0 +1,209 @@
+================================================================================
+WALK-IN EXISTING CUSTOMER SELECTION - ALL CHANGES
+================================================================================
+Feature: Allow secretary to select an existing customer in Walk-In screen
+         with auto-fill of customer data and saved vehicles.
+Date: February 4, 2026
+================================================================================
+
+SUMMARY OF CHANGES
+------------------
+The Walk-In screen now has a toggle to choose between:
+1. "New Customer" - Enter all details manually (original behavior)
+2. "Existing Customer" - Select from dropdown, auto-fills data + shows saved vehicles
+
+================================================================================
+FILE 1: WalkInViewModel.kt
+================================================================================
+Path: app/src/main/java/com/example/zyberauto/presentation/secretary/walkin/WalkInViewModel.kt
+
+CHANGES MADE:
+
+1. ADDED IMPORTS (Lines 8-11):
+   - import com.example.zyberauto.domain.model.Vehicle
+   - import com.example.zyberauto.domain.repository.VehiclesRepository
+   - import kotlinx.coroutines.flow.first
+
+2. ADDED DEPENDENCY INJECTION (Line 28):
+   - Added: private val vehiclesRepository: VehiclesRepository
+   - Constructor now has 3 dependencies: userRepository, appointmentsRepository, vehiclesRepository
+
+3. ADDED NEW STATE FLOWS (Lines 44-54):
+   - _existingCustomers / existingCustomers: List<User> - all customers for dropdown
+   - _selectedCustomer / selectedCustomer: User? - currently selected customer
+   - _customerVehicles / customerVehicles: List<Vehicle> - vehicles for selected customer
+
+4. ADDED init{} CALL (Line 58):
+   - Added: loadExistingCustomers()
+
+5. NEW FUNCTION: loadExistingCustomers() (Lines 64-70):
+   - Collects from userRepository.getAllCustomers()
+   - Populates _existingCustomers state
+
+6. NEW FUNCTION: selectExistingCustomer(customer: User?) (Lines 75-82):
+   - Sets _selectedCustomer
+   - If customer is not null, calls loadVehiclesForCustomer()
+   - If null, clears _customerVehicles
+
+7. NEW FUNCTION: loadVehiclesForCustomer(customerId: String) (Lines 87-96):
+   - Uses vehiclesRepository.getVehiclesForCustomer(customerId).first()
+   - Populates _customerVehicles state
+
+8. UPDATED submitWalkIn() FUNCTION:
+   - ADDED NEW PARAMETER: existingCustomerId: String? (Line 138)
+     - null = create new customer
+     - non-null = use existing customer's UID
+   
+   - MODIFIED LOGIC (Lines 160-180):
+     - If existingCustomerId != null: use it directly as userId
+     - If null: create new User and use the new UUID
+   
+   - FIXED: Appointment creation now uses `userId` instead of `newUserId`
+
+================================================================================
+FILE 2: WalkInScreen.kt
+================================================================================
+Path: app/src/main/java/com/example/zyberauto/presentation/secretary/walkin/WalkInScreen.kt
+
+CHANGES MADE:
+
+1. ADDED IMPORTS (Lines 10-11):
+   - import androidx.compose.material.icons.filled.Person
+   - import androidx.compose.material.icons.filled.PersonAdd
+
+2. ADDED NEW STATE COLLECTIONS (Lines 38-40):
+   - existingCustomers by viewModel.existingCustomers.collectAsStateWithLifecycle()
+   - selectedCustomer by viewModel.selectedCustomer.collectAsStateWithLifecycle()
+   - customerVehicles by viewModel.customerVehicles.collectAsStateWithLifecycle()
+
+3. ADDED NEW UI STATE VARIABLES (Lines 43-50):
+   - var isNewCustomer by remember { mutableStateOf(true) } - toggle state
+   - var customerDropdownExpanded by remember { mutableStateOf(false) }
+   - var selectedVehicleIndex by remember { mutableStateOf(-1) }
+
+4. ADDED LaunchedEffect FOR CUSTOMER AUTO-FILL (Lines 62-69):
+   - When selectedCustomer changes, auto-fills:
+     - fullName
+     - phoneNumber
+     - email
+   - Resets selectedVehicleIndex to -1
+
+5. ADDED LaunchedEffect FOR VEHICLE AUTO-FILL (Lines 72-80):
+   - When selectedVehicleIndex changes, auto-fills:
+     - vehicleBrand
+     - vehicleModel
+     - plateNumber
+     - vehicleType
+
+6. ADDED CUSTOMER TYPE TOGGLE UI (Lines 136-187):
+   - Section title: "Customer Type"
+   - Two FilterChips side by side:
+     a) "New Customer" (with PersonAdd icon)
+        - When clicked: clears all fields, resets to new customer mode
+     b) "Existing Customer" (with Person icon)
+        - When clicked: enables existing customer dropdown
+
+7. ADDED EXISTING CUSTOMER DROPDOWN (Lines 191-237):
+   - Only shown when isNewCustomer = false
+   - ExposedDropdownMenuBox with customer list
+   - Each dropdown item shows:
+     - Customer name (bold)
+     - Phone number or email (gray, smaller)
+   - On selection: calls viewModel.selectExistingCustomer(customer)
+
+8. ADDED VEHICLE SELECTION UI (Lines 240-272):
+   - Only shown when:
+     - isNewCustomer = false
+     - selectedCustomer != null
+     - customerVehicles.isNotEmpty()
+   - Shows "Enter Manually" chip (selectedVehicleIndex = -1)
+   - Shows each saved vehicle as a FilterChip:
+     - Display: "Brand Model (PlateNumber)"
+     - On click: sets selectedVehicleIndex, triggers auto-fill
+
+9. MODIFIED CUSTOMER DETAILS SECTION (Lines 276-294):
+   - Title changes based on isNewCustomer:
+     - true: "New Customer Details"
+     - false: "Customer Details (Auto-filled)"
+   - TextFields now have `enabled = isNewCustomer`:
+     - Full Name: disabled if using existing customer
+     - Phone Number: disabled if using existing customer
+     - Email: disabled if using existing customer
+
+10. UPDATED submitWalkIn() CALL (Lines 418-428):
+    - Added new parameter: existingCustomerId
+    - Value: if (!isNewCustomer) selectedCustomer?.uid else null
+
+================================================================================
+HOW IT WORKS (USER FLOW)
+================================================================================
+
+SCENARIO 1: New Walk-In Customer (Default)
+1. Secretary opens Walk-In screen
+2. "New Customer" chip is selected by default
+3. Secretary fills in all fields manually
+4. Clicks "SUBMIT WALK-IN"
+5. System creates new User + Appointment
+
+SCENARIO 2: Existing Customer with Saved Vehicle
+1. Secretary opens Walk-In screen
+2. Clicks "Existing Customer" chip
+3. Customer dropdown appears
+4. Secretary selects a customer from dropdown
+5. Customer details auto-fill (name, phone, email) - fields become disabled
+6. If customer has saved vehicles, they appear as chips
+7. Secretary clicks on a saved vehicle chip
+8. Vehicle details auto-fill (brand, model, plate, type)
+9. Secretary selects service type and mechanic
+10. Clicks "SUBMIT WALK-IN"
+11. System uses existing customer's UID, creates Appointment
+
+SCENARIO 3: Existing Customer with New Vehicle
+1. Steps 1-5 same as Scenario 2
+2. Secretary clicks "Enter Manually" chip
+3. Vehicle fields are cleared and editable
+4. Secretary enters new vehicle details
+5. Completes booking as normal
+
+================================================================================
+DEPENDENCIES USED
+================================================================================
+- UserRepository.getAllCustomers(): Flow<List<User>>
+- VehiclesRepository.getVehiclesForCustomer(customerId: String): Flow<List<Vehicle>>
+- Both already exist in the codebase
+
+================================================================================
+TESTING CHECKLIST
+================================================================================
+[ ] Open Walk-In screen - should default to "New Customer" mode
+[ ] Toggle to "Existing Customer" - dropdown should appear
+[ ] Select a customer - details should auto-fill
+[ ] Customer with saved vehicles - vehicle chips should appear
+[ ] Select a saved vehicle - vehicle details should auto-fill
+[ ] Click "Enter Manually" - vehicle fields should clear
+[ ] Toggle back to "New Customer" - all fields should clear
+[ ] Submit with existing customer - should not create new User
+[ ] Submit with new customer - should create new User
+[ ] Vehicle active booking check should still work
+
+================================================================================
+BUG FIXES APPLIED (February 4, 2026)
+================================================================================
+
+1. FIXED: Vehicle.brand does not exist
+   - The Vehicle model only has 'model' field (e.g., "Toyota Vios")
+   - It does NOT have a separate 'brand' field
+   - Updated WalkInScreen to use vehicle.model directly
+   - When existing vehicle is selected:
+     - vehicleBrand = "" (empty)
+     - vehicleModel = vehicle.model (full name like "Toyota Vios")
+
+2. FIXED: Validation error when brand is empty
+   - Changed validation from requiring vehicleBrand to just requiring vehicleModel
+   - New logic: hasValidVehicle = vehicleModel.isNotBlank() && plateNumber.isNotBlank()
+
+3. FIXED: VehicleModel composition
+   - Added: val fullVehicleModel = if (vehicleBrand.isBlank()) vehicleModel else "$vehicleBrand $vehicleModel"
+   - This handles both new entries (brand + model) and existing vehicles (model only)
+
+================================================================================

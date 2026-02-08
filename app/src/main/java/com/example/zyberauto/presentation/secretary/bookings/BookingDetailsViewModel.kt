@@ -49,10 +49,11 @@ class BookingDetailsViewModel @Inject constructor(
         }
     }
 
-    fun acceptBooking() {
+    fun acceptBooking(mechanicId: Int) {
         val current = (_uiState.value as? BookingDetailsUiState.Success)?.booking ?: return
         viewModelScope.launch {
-            repository.updateAppointmentStatus(current.id, "ACCEPTED")
+            repository.acceptAppointment(current.id, mechanicId)
+            // Ideally reload booking or rely on flow update
         }
     }
 

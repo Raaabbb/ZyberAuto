@@ -1,0 +1,77 @@
+Authentication/Firebase Removal Plan
+====================================
+
+Goal: Migrate ZyberAuto to a 100% offline, local-only application. 
+      Remove ALL Firebase dependencies (Auth, Firestore, Realtime Database, Storage).
+      Store ALL data in local JSON files.
+
+1. Clean Up Build Configuration
+-------------------------------
+- Remove `google-services.json` from the project.
+- Remove `com.google.gms.google-services` plugin from `build.gradle`.
+- Remove all Firebase dependencies from `app/build.gradle`:
+  - `firebase-auth` / `firebase-auth-ktx`
+  - `firebase-firestore` / `firebase-firestore-ktx`
+  - `firebase-database` / `firebase-database-ktx`
+  - `firebase-storage` / `firebase-storage-ktx`
+  - `firebase-analytics`
+  - `firebase-bom`
+
+2. Infrastructure Setup (Local JSON Engine)
+-------------------------------------------
+- Create `LocalDataHelper` class. 
+  - Responsibility: Read/Write JSON strings to files.
+  - **Location**: Store files in `context.filesDir/json_storage/` (organized folder).
+  - **Format**: Pretty Printed JSON (human readable/editable).
+  - Library: Gson (already in project).
+
+3. Dependency Injection (DI) Transition
+---------------------------------------
+- Update `AppModule.kt`:
+  - **DELETE** all Firebase providers (`provideFirebaseAuth`, `provideFirebaseFirestore`, etc.).
+  - **ADD** `provideLocalDataHelper`.
+  - Update all Repository providers to accept `LocalDataHelper` instead of Firebase classes.
+
+4. Repository Refactoring (Complete replacement)
+------------------------------------------------
+Every repository will be rewritten to use `LocalDataHelper` instead of Firestore/RealtimeDB.
+
+- **User Data**: `json_storage/users.json`
+  - Store User Profile and credentials.
+
+- **Inventory**: `json_storage/inventory.json`
+  - Full CRUD (Create, Read, Update, Delete) locally.
+
+- **Appointments**: `json_storage/appointments.json`
+  - Store all bookings.
+
+- **Chats**: `json_storage/chats.json`
+  - Store all conversations and messages.
+
+- **Vehicles**: `json_storage/vehicles.json`
+  - Store customer cars.
+
+5. Authentication & OTP Removal
+-------------------------------
+- In `AuthViewModel.kt`:
+  - **REMOVE** `FirebaseAuth`.
+  - **MOCK OTP**: Simulate success immediately.
+  - **LOGIN**: Local check against `users.json`.
+
+6. Checklist
+------------
+[x] Create `LocalDataHelper` class
+    [x] Set up `Gson` with pretty printing
+    [x] Ensure directory `files/json_storage/` exists
+[ ] Remove `google-services.json`
+[ ] Clean `build.gradle` (remove Firebase deps)
+[x] Update `AppModule.kt` (Switch DI to LocalDataHelper)
+[x] Refactor `UserRepository` (remove Auth)
+[x] Refactor `InventoryRepository`
+[x] Refactor `AppointmentsRepository`
+[x] Refactor `ChatRepository`
+[x] Refactor `VehiclesRepository`
+[x] Refactor `AuthViewModel`
+[ ] Verify Build
+[ ] Verify Login Flow
+[ ] Verify Data Persistence

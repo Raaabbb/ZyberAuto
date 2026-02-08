@@ -40,6 +40,10 @@ fun CustomerSettingsScreen(
     var newPassword by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
     var newEmail by remember { mutableStateOf("") }
+    
+    // Re-login dialog state
+    var showReloginDialog by remember { mutableStateOf(false) }
+    var reloginMessage by remember { mutableStateOf("") }
 
     LaunchedEffect(uiState) {
         when (val state = uiState) {
@@ -52,7 +56,11 @@ fun CustomerSettingsScreen(
                 }
                 email = state.user.email
                 
-                if (state.message != null) {
+                // Check if re-login is required
+                if (state.requiresRelogin && state.reloginReason != null) {
+                    reloginMessage = state.reloginReason
+                    showReloginDialog = true
+                } else if (state.message != null) {
                     snackbarHostState.showSnackbar(state.message)
                     viewModel.resetMessage()
                 }
@@ -146,7 +154,10 @@ fun CustomerSettingsScreen(
                     HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp))
 
                     Button(
-                        onClick = onLogout,
+                        onClick = {
+                            viewModel.logout()
+                            onLogout()
+                        },
                         modifier = Modifier.fillMaxWidth(),
                         colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
                     ) {
@@ -255,6 +266,28 @@ fun CustomerSettingsScreen(
             dismissButton = {
                 TextButton(onClick = { showChangeEmailDialog = false }) {
                     Text("Cancel")
+                }
+            }
+        )
+    }
+
+    // Re-login Required Dialog
+    if (showReloginDialog) {
+        AlertDialog(
+            onDismissRequest = { }, // Cannot dismiss, must acknowledge
+            title = { Text("Re-login Required") },
+            text = {
+                Text(reloginMessage)
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showReloginDialog = false
+                        viewModel.logout()
+                        onLogout()
+                    }
+                ) {
+                    Text("OK, Log Out")
                 }
             }
         )

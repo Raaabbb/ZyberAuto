@@ -1,0 +1,177 @@
+================================================================================
+                    ZYBERAUTO - POTENTIAL ISSUES & IMPROVEMENTS
+                              Draft Review Document
+================================================================================
+
+--------------------------------------------------------------------------------
+SECTION 1: INCOMPLETE/TODO FEATURES
+--------------------------------------------------------------------------------
+
+1.1 [LOW] Revenue Report - Print/Share Not Implemented
+    File: presentation/secretary/reports/RevenueReportScreen.kt (Line ~44-47)
+    Issue: Print and Share/PDF buttons have TODO comments, no actual functionality
+    Fix: Implement PDF generation and share intent, or remove buttons
+
+1.2 [LOW] Customer Complaints - Placeholder Screen
+    File: presentation/customer/CustomerDraftScreens.kt (Line ~20)
+    Issue: "File Complaint" button has TODO comment, no actual implementation
+    Fix: Implement complaint filing flow or remove feature
+
+--------------------------------------------------------------------------------
+SECTION 2: FALLBACK VALUES / HARDCODED STRINGS
+--------------------------------------------------------------------------------
+
+2.1 [MEDIUM] "Customer" Fallback Name in Chat
+    Files: 
+    - presentation/customer/chat/ChatViewModel.kt (Line ~66)
+    - presentation/customer/chat/CustomerChatEntryViewModel.kt (Line ~56)
+    - presentation/customer/chat/NewConversationViewModel.kt (Line ~66)
+    - presentation/customer/bookings/NewBookingViewModel.kt (Line ~202)
+    Issue: If user profile name is null/blank, "Customer" is shown instead
+    Impact: Could appear in messages sent to secretary
+    Fix: Validate name during registration, require non-empty name
+
+2.2 [LOW] Walk-In Placeholder Email
+    File: presentation/secretary/walkin/WalkInViewModel.kt (Line ~107)
+    Issue: Uses "walkin_$newUserId@zyberauto.com" as placeholder email for walk-ins
+    Impact: Not a real email, could confuse reports/exports
+    Fix: Mark as explicit "No Email" or require phone number instead
+
+2.3 [LOW] Debug Customer Name Fallback
+    File: presentation/customer/inquiries/FileInquiryViewModel.kt (Line ~41)
+    Issue: Uses "Customer (Debug)" as fallback name
+    Fix: Change to proper fallback or handle gracefully
+
+--------------------------------------------------------------------------------
+SECTION 3: DATE/TIME HANDLING CONCERNS
+--------------------------------------------------------------------------------
+
+3.1 [MEDIUM] Mixed Date Formatting Approaches
+    Issue: Codebase uses both SimpleDateFormat and java.time.DateTimeFormatter
+    Files using SimpleDateFormat:
+    - WalkInScreen.kt, WalkInViewModel.kt
+    - RevenueReportScreen.kt
+    - SecretaryAppointmentsScreen.kt
+    - SecretaryOperationsScreen.kt
+    - InquiriesScreen.kt
+    - SecretaryChatListScreen.kt
+    Files using java.time:
+    - SecretaryDashboardScreen.kt (uses ZoneId.of("Asia/Manila"))
+    Impact: Potential timezone inconsistencies between screens
+    Fix: Standardize on java.time.* with consistent timezone handling
+
+3.2 [LOW] Time Slot Validation - Edge Cases
+    File: NewBookingScreen.kt (Line ~247-291)
+    Issue: User can select past times on the current day
+    Impact: Could create bookings for times that already passed today
+    Fix: Add validation to block past hours on current day
+
+--------------------------------------------------------------------------------
+SECTION 4: UI/UX CONCERNS
+--------------------------------------------------------------------------------
+
+4.1 [LOW] Secretary Chat Missing Empty State
+    File: presentation/secretary/chat/SecretaryChatScreen.kt
+    Issue: No empty state UI when no messages (customer chat has it after recent fix)
+    Fix: Add similar empty state as CustomerChatScreen
+
+4.2 [LOW] Email Field Disabled But Visually Unclear
+    File: presentation/customer/settings/CustomerSettingsScreen.kt (Line ~114)
+    Issue: Email field is disabled but users might not understand why
+    Fix: Add helper text explaining email is changed via "Change Email" button
+
+4.3 [MEDIUM] No Visual Indicator for "Fully Booked" Time Slots
+    File: NewBookingScreen.kt
+    Issue: Time picker shows all times, user only sees error after selecting
+    Impact: Poor UX - user has to guess available times
+    Fix: Pre-fetch booked slots and gray out unavailable times in picker
+
+4.4 [LOW] Secretary Chat Has Extra Bottom Spacer
+    File: presentation/secretary/chat/SecretaryChatScreen.kt (Line ~87)
+    Issue: Has 80.dp spacer for bottom navigation that might not be needed
+    Fix: Verify if this is correct for the navigation setup
+
+--------------------------------------------------------------------------------
+SECTION 5: LOGIC/VALIDATION GAPS
+--------------------------------------------------------------------------------
+
+5.1 [HIGH] Potential Race Condition in Booking Slot Validation
+    File: NewBookingViewModel.kt / AppointmentsRepositoryImpl.kt
+    Issue: Between checking availability and submitting, another user could book
+    Impact: Could exceed 3 mechanics if two users submit simultaneously
+    Fix: Use Firebase transaction for atomic check-and-create
+
+5.2 [MEDIUM] IN_PROGRESS Status Not Used Consistently
+    Files: database_operations.txt, Appointment.kt
+    Issue: Documentation mentions IN_PROGRESS status but Appointment.kt only 
+           lists PENDING/ACCEPTED/DECLINED/COMPLETED in comments
+    Impact: Confusion about workflow states
+    Fix: Clarify if IN_PROGRESS is used, update model comments
+
+5.3 [LOW] Vehicle Year Validation Missing
+    File: NewBookingScreen.kt
+    Issue: Year field accepts any text, no numeric validation
+    Fix: Add numeric-only input and reasonable year range (1990-current)
+
+5.4 [MEDIUM] Plate Number Format Not Validated
+    Files: NewBookingScreen.kt, WalkInScreen.kt
+    Issue: No format validation for Philippine plate numbers
+    Impact: Inconsistent data, harder to match duplicates
+    Fix: Add regex validation for standard PH plate formats
+
+--------------------------------------------------------------------------------
+SECTION 6: MISSING FEATURES / ENHANCEMENTS
+--------------------------------------------------------------------------------
+
+6.1 [MEDIUM] No Notification When Booking Status Changes
+    Issue: Customer doesn't get notified when booking is accepted/declined
+    Fix: Implement FCM push notifications
+
+6.2 [LOW] No Appointment Cancellation for Customers
+    Issue: Customers cannot cancel their own pending bookings
+    Fix: Add cancel button on pending bookings in CustomerBookingsScreen
+
+6.3 [LOW] No Chat Notification Badge
+    Issue: No visual indicator of unread messages on bottom nav
+    Fix: Add badge count to chat icon in navigation
+
+6.4 [MEDIUM] Secretary Can't See Customer Contact Info in Chat
+    File: SecretaryChatScreen.kt, SecretaryChatTopBar
+    Issue: Only shows customer name, not phone/email for callbacks
+    Fix: Show contact info in chat header or add "View Customer" button
+
+--------------------------------------------------------------------------------
+SECTION 7: CODE QUALITY
+--------------------------------------------------------------------------------
+
+7.1 [LOW] Unused Import in CustomerChatEntryViewModel
+    File: CustomerChatEntryViewModel.kt
+    Issue: ChatMessage import may no longer be needed after removing initial message
+    Fix: Clean up unused imports
+
+7.2 [LOW] Inconsistent Error Handling
+    Issue: Some ViewModels log errors, others silently fail
+    Fix: Standardize error handling with user-friendly messages
+
+--------------------------------------------------------------------------------
+PRIORITY SUMMARY
+--------------------------------------------------------------------------------
+
+HIGH PRIORITY (Fix Soon):
+- 5.1 Race condition in booking slot validation
+
+MEDIUM PRIORITY (Should Fix):
+- 2.1 "Customer" fallback names appearing in chat
+- 3.1 Mixed date formatting approaches
+- 4.3 No visual indicator for fully booked time slots
+- 5.2 IN_PROGRESS status inconsistency
+- 5.4 Plate number format validation
+- 6.1 No booking status notifications
+- 6.4 Missing customer contact info in secretary chat
+
+LOW PRIORITY (Nice to Have):
+- All items marked [LOW]
+
+================================================================================
+                              END OF DOCUMENT
+================================================================================

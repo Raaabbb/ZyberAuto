@@ -6,7 +6,6 @@ data class User(
     val role: String = "",
     val name: String = "",
     val phoneNumber: String = "",
-    @get:com.google.firebase.firestore.PropertyName("isVerified")
-    @set:com.google.firebase.firestore.PropertyName("isVerified")
-    var isVerified: Boolean = false
+    var isVerified: Boolean = false,
+    val password: String = "" // Added for local auth
 )

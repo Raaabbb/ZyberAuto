@@ -1,0 +1,666 @@
+================================================================================
+                    ZYBERAUTO DATABASE OPERATIONS REFERENCE
+                    =========================================
+                    Document Generated: February 2026
+                    Version: 2.0 (Complete with Fields, Collections, and Keys)
+================================================================================
+
+This document lists all database operations (CRUD - Create, Read, Update, Delete)
+in the ZyberAuto application, including:
+- Firebase Collection/Path names
+- Document ID (Key) structure
+- All field names and their data types
+- Buttons/actions that trigger each operation
+- Screen locations for UI triggers
+
+================================================================================
+                              FIREBASE CONFIGURATION
+================================================================================
+
+The app uses TWO Firebase databases:
+1. Firebase Firestore (Cloud Firestore) - for: users, vehicles, inventory, complaints
+2. Firebase Realtime Database (RTDB) - for: appointments, conversations, messages, inquiries
+
+================================================================================
+================================================================================
+                              1. APPOINTMENTS (BOOKINGS)
+================================================================================
+================================================================================
+
+DATABASE:        Firebase Realtime Database (RTDB)
+PATH:            /appointments/{appointmentId}
+KEY FORMAT:      Auto-generated push key (e.g., "-NxYz1234AbCdEfG")
+
+Repository Interface:   domain/repository/AppointmentsRepository.kt
+Repository Impl:        data/repository/AppointmentsRepositoryImpl.kt
+Model Class:            domain/model/Appointment.kt
+
+--------------------------------------------------------------------------------
+SCHEMA (FIELDS):
+--------------------------------------------------------------------------------
+
+| Field Name        | Data Type  | Description                                  | Example Value                    |
+|-------------------|------------|----------------------------------------------|----------------------------------|
+| id                | String     | Document ID (Firebase push key)              | "-NxYz1234AbCdEfG"               |
+| userId            | String     | Customer's Firebase Auth UID                 | "abc123uid456"                   |
+| customerName      | String     | Customer's display name                      | "John Doe"                       |
+| vehicleModel      | String     | Vehicle make/model                           | "Toyota Vios 2020"               |
+| plateNumber       | String     | License plate number                         | "ABC-1234"                       |
+| serviceType       | String     | Type of service requested                    | "Oil Change", "Full Check-up"    |
+| notes             | String     | Additional customer notes                    | "Please check brakes too"        |
+| status            | String     | Booking status                               | "PENDING"/"ACCEPTED"/"DECLINED"/"COMPLETED" |
+| dateScheduled     | Date       | Scheduled service date                       | 2026-02-15T10:00:00              |
+| timeSlot          | String     | Time slot string                             | "9:00 AM - 10:00 AM"             |
+| price             | Double     | Service price                                | 1500.00                          |
+| createdAt         | Date       | Booking creation timestamp                   | 2026-02-01T14:30:00              |
+| rejectionReason   | String     | Reason if booking was declined               | "Fully booked for that day"      |
+
+--------------------------------------------------------------------------------
+CREATE OPERATIONS:
+--------------------------------------------------------------------------------
+
+| Button/Action              | Screen Location                                | ViewModel Method | Repository Method  | Purpose                                      |
+|----------------------------|-----------------------------------------------|------------------|-------------------|----------------------------------------------|
+| "Submit" Button            | presentation/customer/bookings/NewBookingScreen.kt | submitBooking() | createBooking()   | Customer submits a new service booking       |
+| "Create Walk-In" Button    | presentation/secretary/walkin/WalkInScreen.kt | createWalkIn()   | createBooking()   | Secretary creates immediate walk-in booking  |
+
+--------------------------------------------------------------------------------
+READ OPERATIONS:
+--------------------------------------------------------------------------------
+
+| Trigger                    | Screen Location                                | ViewModel Method    | Repository Method       | Purpose                                      |
+|----------------------------|-----------------------------------------------|---------------------|------------------------|----------------------------------------------|
+| Screen Load (Auto)         | presentation/customer/bookings/CustomerBookingsScreen.kt | init{}          | getBookingsForUser()   | Load customer's bookings list                |
+| Screen Load (Auto)         | presentation/secretary/SecretaryDashboardScreen.kt | init{}              | getAppointments()      | Load all appointments for dashboard          |
+| Screen Load (Auto)         | presentation/secretary/appointments/SecretaryScheduleWrapperScreen.kt | init{} | getAppointments()   | Load schedule/calendar view                  |
+| Screen Load (Auto)         | presentation/secretary/bookings/BookingRequestsScreen.kt | init{}          | getAppointments()      | Load pending booking requests                |
+| Screen Load (Auto)         | presentation/secretary/reports/ReportsScreen.kt | init{}              | getAppointments()      | Load data for reports generation             |
+
+--------------------------------------------------------------------------------
+UPDATE OPERATIONS:
+--------------------------------------------------------------------------------
+
+| Button/Action              | Screen Location                                | ViewModel Method         | Repository Method           | Status Change                     |
+|----------------------------|-----------------------------------------------|--------------------------|----------------------------|-----------------------------------|
+| "Approve" Button           | presentation/secretary/bookings/BookingRequestsScreen.kt | approveBooking()    | updateAppointmentStatus()  | PENDING → ACCEPTED               |
+| "Start Service" Button     | (BookingDetailsScreen)                        | startService()           | updateAppointmentStatus()  | ACCEPTED → IN_PROGRESS           |
+| "Complete" Button          | (BookingDetailsScreen)                        | completeService()        | updateAppointmentStatus()  | IN_PROGRESS → COMPLETED          |
+| Status Chip/Button         | presentation/secretary/appointments/SecretaryScheduleScreen.kt | updateStatus() | updateAppointmentStatus() | General status updates           |
+
+--------------------------------------------------------------------------------
+DELETE/REJECT OPERATIONS:
+--------------------------------------------------------------------------------
+
+| Button/Action              | Screen Location                                | ViewModel Method | Repository Method | Purpose                                      |
+|----------------------------|-----------------------------------------------|------------------|------------------|----------------------------------------------|
+| "Reject" Button            | presentation/secretary/bookings/BookingRequestsScreen.kt | rejectBooking() | rejectBooking()  | Sets status=DECLINED + rejectionReason       |
+
+================================================================================
+================================================================================
+                              2. VEHICLES (CUSTOMER CARS)
+================================================================================
+================================================================================
+
+DATABASE:        Firebase Firestore (Cloud Firestore)
+COLLECTION:      vehicles
+DOCUMENT ID:     Auto-generated Firestore ID (e.g., "aBcDeFgHiJkLmNoP")
+KEY FORMAT:      Firestore auto-generated document ID
+
+Repository Interface:   domain/repository/VehiclesRepository.kt
+Repository Impl:        data/repository/VehiclesRepositoryImpl.kt
+Model Class:            domain/model/Vehicle.kt
+
+--------------------------------------------------------------------------------
+SCHEMA (FIELDS):
+--------------------------------------------------------------------------------
+
+| Field Name        | Data Type  | Description                                  | Example Value                    |
+|-------------------|------------|----------------------------------------------|----------------------------------|
+| id                | String     | Firestore Document ID (@DocumentId)          | "aBcDeFgHiJkLmNoP"               |
+| customerId        | String     | Owner's Firebase Auth UID                    | "abc123uid456"                   |
+| model             | String     | Vehicle make/model                           | "Honda Civic"                    |
+| plateNumber       | String     | License plate number                         | "XYZ-7890"                       |
+| year              | String     | Manufacturing year                           | "2022"                           |
+| dateRegistered    | Long       | Registration timestamp (milliseconds)        | 1706745600000                    |
+
+--------------------------------------------------------------------------------
+CREATE OPERATIONS:
+--------------------------------------------------------------------------------
+
+| Button/Action              | Screen Location                                | ViewModel Method | Repository Method | Purpose                                      |
+|----------------------------|-----------------------------------------------|------------------|------------------|----------------------------------------------|
+| "Add Car" FAB (+)          | presentation/customer/cars/AddCarScreen.kt    | saveCar()        | addVehicle()     | Register a new vehicle to customer's profile |
+| "Save" Dialog Button       | presentation/customer/bookings/NewBookingScreen.kt > SaveCarDialog | saveVehicleAfterBooking() | addVehicle() | Save manually entered car after booking |
+
+--------------------------------------------------------------------------------
+READ OPERATIONS:
+--------------------------------------------------------------------------------
+
+| Trigger                    | Screen Location                                | ViewModel Method | Repository Method          | Purpose                                      |
+|----------------------------|-----------------------------------------------|------------------|---------------------------|----------------------------------------------|
+| Screen Load (Auto)         | presentation/customer/cars/MyCarsScreen.kt    | init{}           | getVehiclesForCustomer()  | Load customer's saved vehicles               |
+| Screen Load (Auto)         | presentation/customer/bookings/NewBookingScreen.kt | init{}       | getVehiclesForCustomer()  | Populate saved cars dropdown for booking     |
+
+--------------------------------------------------------------------------------
+UPDATE OPERATIONS:
+--------------------------------------------------------------------------------
+
+| Button/Action              | Screen Location                                | ViewModel Method | Repository Method | Purpose                                      |
+|----------------------------|-----------------------------------------------|------------------|------------------|----------------------------------------------|
+| (Edit functionality)       | presentation/customer/cars/MyCarsScreen.kt    | updateVehicle()  | updateVehicle()  | Edit existing vehicle details                |
+
+--------------------------------------------------------------------------------
+DELETE OPERATIONS:
+--------------------------------------------------------------------------------
+
+| Button/Action              | Screen Location                                | ViewModel Method | Repository Method | Purpose                                      |
+|----------------------------|-----------------------------------------------|------------------|------------------|----------------------------------------------|
+| Delete Icon (Trash)        | presentation/customer/cars/MyCarsScreen.kt > Vehicle Card | deleteCar() | deleteVehicle() | Remove vehicle from customer's profile       |
+| "Confirm Delete" Dialog    | presentation/customer/cars/MyCarsScreen.kt > Confirmation Dialog | deleteCar() | deleteVehicle() | Confirm and execute vehicle deletion    |
+
+================================================================================
+================================================================================
+                              3. CHAT - CONVERSATIONS
+================================================================================
+================================================================================
+
+DATABASE:        Firebase Realtime Database (RTDB)
+PATH:            /conversations/{conversationId}
+KEY FORMAT:      Auto-generated push key (e.g., "-NxYz5555AbCdEf")
+
+Repository Interface:   domain/repository/ChatRepository.kt
+Repository Impl:        data/repository/ChatRepositoryImpl.kt
+Model Class:            domain/model/ChatConversation.kt
+
+--------------------------------------------------------------------------------
+SCHEMA (FIELDS):
+--------------------------------------------------------------------------------
+
+| Field Name        | Data Type  | Description                                  | Example Value                    |
+|-------------------|------------|----------------------------------------------|----------------------------------|
+| id                | String     | Document ID (Firebase push key)              | "-NxYz5555AbCdEf"                |
+| customerId        | String     | Customer's Firebase Auth UID                 | "abc123uid456"                   |
+| customerName      | String     | Customer's display name                      | "John Doe"                       |
+| subject           | String     | Conversation topic                           | "Question about oil change"      |
+| lastMessage       | String     | Preview of most recent message               | "Thank you for your help!"       |
+| lastMessageTime   | Long       | Timestamp of last message (milliseconds)     | 1706745600000                    |
+| lastSenderType    | String     | Who sent last message                        | "CUSTOMER" or "STAFF"            |
+| status            | String     | Conversation status                          | "ACTIVE" or "INACTIVE"           |
+| createdAt         | Long       | Creation timestamp (milliseconds)            | 1706745600000                    |
+
+--------------------------------------------------------------------------------
+CREATE OPERATIONS:
+--------------------------------------------------------------------------------
+
+| Button/Action              | Screen Location                                | ViewModel Method       | Repository Method      | Purpose                                      |
+|----------------------------|-----------------------------------------------|------------------------|------------------------|----------------------------------------------|
+| "Start Chat" Button        | presentation/customer/chat/NewConversationScreen.kt | createConversation() | createConversation() | Create new conversation with secretary       |
+
+--------------------------------------------------------------------------------
+READ OPERATIONS:
+--------------------------------------------------------------------------------
+
+| Trigger                    | Screen Location                                | ViewModel Method | Repository Method               | Purpose                                      |
+|----------------------------|-----------------------------------------------|------------------|---------------------------------|----------------------------------------------|
+| Screen Load (Auto)         | presentation/customer/chat/ConversationsScreen.kt | init{}       | getConversationsForCustomer()   | Load customer's chat list                    |
+| Screen Load (Auto)         | presentation/secretary/chat/SecretaryChatListScreen.kt | init{}   | getAllConversations()           | Load all conversations for secretary         |
+| Chat Open (Auto)           | ChatScreen.kt / SecretaryChatScreen.kt        | init{}           | getConversation()               | Load conversation metadata                   |
+
+--------------------------------------------------------------------------------
+UPDATE OPERATIONS:
+--------------------------------------------------------------------------------
+
+| Trigger                    | Screen Location                                | ViewModel Method         | Repository Method              | Purpose                                      |
+|----------------------------|-----------------------------------------------|--------------------------|--------------------------------|----------------------------------------------|
+| "Close Chat" Action        | presentation/secretary/chat/SecretaryChatListScreen.kt | closeConversation() | updateConversationStatus() | Mark conversation as INACTIVE                |
+
+================================================================================
+================================================================================
+                              4. CHAT - MESSAGES
+================================================================================
+================================================================================
+
+DATABASE:        Firebase Realtime Database (RTDB)
+PATH:            /messages/{conversationId}/{messageId}
+KEY FORMAT:      Auto-generated push key (e.g., "-NxYz7777MsGhIj")
+
+Repository Interface:   domain/repository/ChatRepository.kt
+Repository Impl:        data/repository/ChatRepositoryImpl.kt
+Model Class:            domain/model/ChatMessage.kt
+
+--------------------------------------------------------------------------------
+SCHEMA (FIELDS):
+--------------------------------------------------------------------------------
+
+| Field Name        | Data Type  | Description                                  | Example Value                    |
+|-------------------|------------|----------------------------------------------|----------------------------------|
+| id                | String     | Message ID (Firebase push key)               | "-NxYz7777MsGhIj"                |
+| conversationId    | String     | Parent conversation ID                       | "-NxYz5555AbCdEf"                |
+| senderId          | String     | Sender's Firebase Auth UID                   | "abc123uid456"                   |
+| senderType        | String     | Who sent the message                         | "CUSTOMER" or "STAFF"            |
+| senderName        | String     | Sender's display name                        | "John Doe"                       |
+| message           | String     | Message text content                         | "Hello, I have a question..."    |
+| imageUrl          | String?    | Optional image URL (Firebase Storage)        | "https://storage.../image.jpg"   |
+| timestamp         | Long       | Send time (milliseconds)                     | 1706745600000                    |
+| status            | String     | Delivery status                              | "SENDING"/"SENT"/"DELIVERED"/"SEEN" |
+
+    STATUS VALUES:
+    - SENDING:   Message is uploading to Firebase
+    - SENT:      Message confirmed in database
+    - DELIVERED: Recipient's device synced the message
+    - SEEN:      Recipient opened the chat and viewed message
+
+--------------------------------------------------------------------------------
+CREATE OPERATIONS:
+--------------------------------------------------------------------------------
+
+| Button/Action              | Screen Location                                | ViewModel Method | Repository Method | Purpose                                      |
+|----------------------------|-----------------------------------------------|------------------|------------------|----------------------------------------------|
+| "Send" Button              | presentation/customer/chat/ChatScreen.kt      | sendMessage()    | sendMessage()    | Send a text/image message                    |
+| "Send" Button              | presentation/secretary/chat/SecretaryChatScreen.kt | sendMessage() | sendMessage()    | Secretary sends reply message                |
+| Image Picker Icon          | ChatScreen.kt / SecretaryChatScreen.kt        | sendImageMessage() | sendMessage()  | Upload and send image message                |
+
+--------------------------------------------------------------------------------
+READ OPERATIONS:
+--------------------------------------------------------------------------------
+
+| Trigger                    | Screen Location                                | ViewModel Method | Repository Method | Purpose                                      |
+|----------------------------|-----------------------------------------------|------------------|------------------|----------------------------------------------|
+| Chat Open (Auto)           | ChatScreen.kt / SecretaryChatScreen.kt        | init{}           | getMessages()    | Load all messages (real-time listener)       |
+
+--------------------------------------------------------------------------------
+UPDATE OPERATIONS:
+--------------------------------------------------------------------------------
+
+| Trigger                    | Screen Location                                | ViewModel Method         | Repository Method           | Purpose                                      |
+|----------------------------|-----------------------------------------------|--------------------------|----------------------------|----------------------------------------------|
+| Chat Open (Auto)           | ChatScreen.kt                                 | onChatOpened()           | markMessagesAsDelivered()  | Mark messages as DELIVERED when opened       |
+| Message Visible (Auto)     | ChatScreen.kt                                 | markAsSeen()             | markMessagesAsSeen()       | Mark messages as SEEN when scrolled to       |
+| After Send (Auto)          | ChatScreen.kt                                 | (internal)               | updateMessageStatus()      | Update SENDING → SENT after upload           |
+
+================================================================================
+================================================================================
+                              5. USERS (PROFILES)
+================================================================================
+================================================================================
+
+DATABASE:        Firebase Firestore (Cloud Firestore)
+COLLECTION:      users
+DOCUMENT ID:     Firebase Auth UID (e.g., "abc123uid456")
+KEY FORMAT:      User's Firebase Auth UID (NOT auto-generated)
+
+Repository Interface:   domain/repository/UserRepository.kt
+Repository Impl:        data/repository/UserRepositoryImpl.kt
+Model Class:            domain/model/User.kt
+
+--------------------------------------------------------------------------------
+SCHEMA (FIELDS):
+--------------------------------------------------------------------------------
+
+| Field Name        | Data Type  | Description                                  | Example Value                    |
+|-------------------|------------|----------------------------------------------|----------------------------------|
+| uid               | String     | Firebase Auth UID (Document ID)              | "abc123uid456"                   |
+| email             | String     | User's email address                         | "john.doe@email.com"             |
+| role              | String     | User role                                    | "CUSTOMER" or "SECRETARY"        |
+| name              | String     | Display name                                 | "John Doe"                       |
+| phoneNumber       | String     | Phone number                                 | "+63 917 123 4567"               |
+| isVerified        | Boolean    | Email verification status                    | true / false                     |
+
+--------------------------------------------------------------------------------
+CREATE OPERATIONS:
+--------------------------------------------------------------------------------
+
+| Button/Action              | Screen Location                                | ViewModel Method     | Repository Method     | Purpose                                      |
+|----------------------------|-----------------------------------------------|----------------------|----------------------|----------------------------------------------|
+| "Register" Button          | presentation/auth/RegisterScreen.kt           | register()           | createUserProfile()  | Create user profile after Firebase Auth      |
+| "Create Walk-In" Button    | presentation/secretary/walkin/WalkInScreen.kt | createWalkIn()       | createUserProfile()  | Create guest user profile for walk-in        |
+
+--------------------------------------------------------------------------------
+READ OPERATIONS:
+--------------------------------------------------------------------------------
+
+| Trigger                    | Screen Location                                | ViewModel Method | Repository Method    | Purpose                                      |
+|----------------------------|-----------------------------------------------|------------------|---------------------|----------------------------------------------|
+| App Launch (Auto)          | presentation/splash/SplashViewModel.kt        | checkSession()   | getUserProfile()    | Load user data for session                   |
+| Login (Auto)               | presentation/auth/LoginViewModel.kt           | login()          | getUserRole()       | Determine user role for navigation           |
+| Settings Load (Auto)       | presentation/customer/settings/CustomerSettingsScreen.kt | init{} | getUserProfile()  | Load current profile data for editing        |
+| Screen Load (Auto)         | presentation/secretary/customers/CustomersScreen.kt | init{}      | getAllCustomers()   | Load list of all registered customers        |
+
+--------------------------------------------------------------------------------
+UPDATE OPERATIONS:
+--------------------------------------------------------------------------------
+
+| Button/Action              | Screen Location                                | ViewModel Method     | Repository Method               | Fields Updated                    |
+|----------------------------|-----------------------------------------------|----------------------|---------------------------------|-----------------------------------|
+| "Save" Button              | presentation/customer/settings/CustomerSettingsScreen.kt | updateProfile() | updateUserProfile()         | name, phoneNumber                 |
+| Email Verify (Auto)        | CustomerSettingsScreen.kt (after verification) | checkVerification() | updateUserVerificationStatus() | isVerified = true                |
+
+================================================================================
+================================================================================
+                              6. INVENTORY (PARTS/SUPPLIES)
+================================================================================
+================================================================================
+
+DATABASE:        Firebase Firestore (Cloud Firestore)
+COLLECTION:      inventory
+DOCUMENT ID:     Auto-generated Firestore ID (e.g., "aBcDeFgHiJkLmNoP")
+KEY FORMAT:      Firestore auto-generated document ID
+
+Repository Interface:   domain/repository/InventoryRepository.kt
+Repository Impl:        data/repository/InventoryRepositoryImpl.kt
+Model Class:            domain/model/InventoryItem.kt
+
+--------------------------------------------------------------------------------
+SCHEMA (FIELDS):
+--------------------------------------------------------------------------------
+
+| Field Name        | Data Type  | Description                                  | Example Value                    |
+|-------------------|------------|----------------------------------------------|----------------------------------|
+| id                | String     | Firestore Document ID                        | "aBcDeFgHiJkLmNoP"               |
+| name              | String     | Item name                                    | "Engine Oil 5W-30"               |
+| category          | String     | Item category                                | "Fluids", "Parts", "Tools"       |
+| quantity          | Int        | Stock quantity                               | 25                               |
+| price             | Double     | Item price                                   | 450.00                           |
+| lastUpdated       | Date       | Last update timestamp                        | 2026-02-01T14:30:00              |
+
+--------------------------------------------------------------------------------
+CREATE OPERATIONS:
+--------------------------------------------------------------------------------
+
+| Button/Action              | Screen Location                                | ViewModel Method | Repository Method | Purpose                                      |
+|----------------------------|-----------------------------------------------|------------------|------------------|----------------------------------------------|
+| "Add Item" FAB (+)         | presentation/secretary/inventory/InventoryScreen.kt | addItem()    | addItem()        | Add new inventory item                       |
+| "Save" in Add Dialog       | InventoryScreen.kt > Add Dialog               | addItem()        | addItem()        | Confirm and save new item                    |
+
+--------------------------------------------------------------------------------
+READ OPERATIONS:
+--------------------------------------------------------------------------------
+
+| Trigger                    | Screen Location                                | ViewModel Method | Repository Method | Purpose                                      |
+|----------------------------|-----------------------------------------------|------------------|------------------|----------------------------------------------|
+| Screen Load (Auto)         | presentation/secretary/inventory/InventoryScreen.kt | init{}       | getInventory()   | Load all inventory items                     |
+
+--------------------------------------------------------------------------------
+UPDATE OPERATIONS:
+--------------------------------------------------------------------------------
+
+| Button/Action              | Screen Location                                | ViewModel Method    | Repository Method | Fields Updated                    |
+|----------------------------|-----------------------------------------------|---------------------|------------------|-----------------------------------|
+| "Edit" Icon                | InventoryScreen.kt > Item Card                | updateItem()        | updateItem()     | name, category, price             |
+| +/- Buttons                | InventoryScreen.kt > Item Card                | adjustQuantity()    | updateItem()     | quantity, lastUpdated             |
+
+--------------------------------------------------------------------------------
+DELETE OPERATIONS:
+--------------------------------------------------------------------------------
+
+| Button/Action              | Screen Location                                | ViewModel Method | Repository Method | Purpose                                      |
+|----------------------------|-----------------------------------------------|------------------|------------------|----------------------------------------------|
+| "Delete" Icon              | InventoryScreen.kt > Item Card                | deleteItem()     | deleteItem()     | Remove item from inventory                   |
+
+================================================================================
+================================================================================
+                              7. INQUIRIES (SUPPORT REQUESTS)
+================================================================================
+================================================================================
+
+DATABASE:        Firebase Realtime Database (RTDB)
+PATH:            /inquiries/{inquiryId}
+KEY FORMAT:      Auto-generated push key (e.g., "-NxYz8888InQuIrY")
+
+Repository Interface:   domain/repository/InquiriesRepository.kt
+Repository Impl:        data/repository/InquiriesRepositoryImpl.kt
+Model Class:            domain/model/Inquiry.kt
+
+--------------------------------------------------------------------------------
+SCHEMA (FIELDS):
+--------------------------------------------------------------------------------
+
+| Field Name        | Data Type  | Description                                  | Example Value                    |
+|-------------------|------------|----------------------------------------------|----------------------------------|
+| id                | String     | Document ID (Firebase push key)              | "-NxYz8888InQuIrY"               |
+| userId            | String     | Customer's Firebase Auth UID                 | "abc123uid456"                   |
+| customerName      | String     | Customer's display name                      | "John Doe"                       |
+| subject           | String     | Inquiry subject                              | "Pricing Question"               |
+| message           | String     | Inquiry message body                         | "How much for a full service?"   |
+| status            | String     | Inquiry status                               | "NEW" / "REPLIED" / "CLOSED"     |
+| dateSubmitted     | Long       | Submission timestamp (milliseconds)          | 1706745600000                    |
+| reply             | String?    | Secretary's reply (nullable)                 | "Our full service costs ₱5,000"  |
+| replyDate         | Long?      | Reply timestamp (nullable, milliseconds)     | 1706832000000                    |
+
+--------------------------------------------------------------------------------
+CREATE OPERATIONS:
+--------------------------------------------------------------------------------
+
+| Button/Action              | Screen Location                                | ViewModel Method | Repository Method | Purpose                                      |
+|----------------------------|-----------------------------------------------|------------------|------------------|----------------------------------------------|
+| "Submit" Button            | presentation/customer/inquiries/FileInquiryScreen.kt | submitInquiry() | createInquiry() | Submit new inquiry/question                  |
+
+--------------------------------------------------------------------------------
+READ OPERATIONS:
+--------------------------------------------------------------------------------
+
+| Trigger                    | Screen Location                                | ViewModel Method | Repository Method      | Purpose                                      |
+|----------------------------|-----------------------------------------------|------------------|------------------------|----------------------------------------------|
+| Screen Load (Auto)         | presentation/customer/inquiries/CustomerInquiriesScreen.kt | init{} | getInquiriesForUser() | Load customer's inquiry history              |
+| Screen Load (Auto)         | presentation/secretary/inquiries/InquiriesScreen.kt | init{}       | getAllInquiries()      | Load all inquiries for review                |
+| Screen Load (Auto)         | presentation/secretary/SecretaryDashboardScreen.kt | init{}       | getAllInquiries()      | Load unread count for dashboard              |
+
+--------------------------------------------------------------------------------
+UPDATE OPERATIONS:
+--------------------------------------------------------------------------------
+
+| Button/Action              | Screen Location                                | ViewModel Method | Repository Method        | Fields Updated                    |
+|----------------------------|-----------------------------------------------|------------------|--------------------------|-----------------------------------|
+| "Reply" Button             | presentation/secretary/inquiries/InquiriesScreen.kt | replyToInquiry() | updateInquiryStatus() | status=REPLIED, reply, replyDate |
+
+================================================================================
+================================================================================
+                              8. COMPLAINTS
+================================================================================
+================================================================================
+
+DATABASE:        Firebase Firestore (Cloud Firestore)
+COLLECTION:      complaints
+DOCUMENT ID:     Auto-generated Firestore ID (e.g., "xYzAbCdEfGhIjKlM")
+KEY FORMAT:      Firestore auto-generated document ID
+
+Repository Interface:   domain/repository/ComplaintsRepository.kt
+Repository Impl:        data/repository/ComplaintsRepositoryImpl.kt
+Model Class:            domain/model/Complaint.kt
+
+--------------------------------------------------------------------------------
+SCHEMA (FIELDS):
+--------------------------------------------------------------------------------
+
+| Field Name        | Data Type  | Description                                  | Example Value                    |
+|-------------------|------------|----------------------------------------------|----------------------------------|
+| id                | String     | Firestore Document ID                        | "xYzAbCdEfGhIjKlM"               |
+| userId            | String     | Customer's Firebase Auth UID                 | "abc123uid456"                   |
+| customerName      | String     | Customer's display name                      | "John Doe"                       |
+| subject           | String     | Complaint subject                            | "Poor Service Experience"        |
+| message           | String     | Complaint message body                       | "I waited 3 hours for my car..." |
+| status            | String     | Complaint status                             | "NEW" / "REPLIED" / "CLOSED"     |
+| dateSubmitted     | Date       | Submission timestamp                         | 2026-02-01T14:30:00              |
+| reply             | String?    | Staff response (nullable)                    | "We apologize for the delay..."  |
+| replyDate         | Date?      | Reply timestamp (nullable)                   | 2026-02-02T09:00:00              |
+
+--------------------------------------------------------------------------------
+CREATE OPERATIONS:
+--------------------------------------------------------------------------------
+
+| Button/Action              | Screen Location                                | ViewModel Method | Repository Method   | Purpose                                      |
+|----------------------------|-----------------------------------------------|------------------|---------------------|----------------------------------------------|
+| "File Complaint" Button    | presentation/customer/CustomerDraftScreens.kt (Placeholder) | submitComplaint() | createComplaint() | Submit formal complaint                  |
+
+--------------------------------------------------------------------------------
+READ OPERATIONS:
+--------------------------------------------------------------------------------
+
+| Trigger                    | Screen Location                                | ViewModel Method | Repository Method       | Purpose                                      |
+|----------------------------|-----------------------------------------------|------------------|------------------------|----------------------------------------------|
+| Screen Load (Auto)         | (Customer Complaints Screen)                  | init{}           | getComplaintsForUser() | Load customer's complaint history            |
+| Screen Load (Auto)         | (Secretary Complaints Screen)                 | init{}           | getAllComplaints()     | Load all complaints for review               |
+
+--------------------------------------------------------------------------------
+UPDATE OPERATIONS:
+--------------------------------------------------------------------------------
+
+| Button/Action              | Screen Location                                | ViewModel Method | Repository Method         | Fields Updated                    |
+|----------------------------|-----------------------------------------------|------------------|---------------------------|-----------------------------------|
+| "Respond" Button           | (Secretary Complaints Screen)                 | replyToComplaint() | updateComplaintStatus() | status=REPLIED, reply, replyDate |
+
+================================================================================
+================================================================================
+                              9. IMAGE UPLOADS (FIREBASE STORAGE)
+================================================================================
+================================================================================
+
+STORAGE:         Firebase Storage
+PATH:            /chat_images/{conversationId}/{imageId}.jpg
+KEY FORMAT:      Combination of conversationId + generated UUID + timestamp
+
+Repository:      data/repository/ImageUploadRepository.kt
+
+--------------------------------------------------------------------------------
+UPLOAD OPERATIONS:
+--------------------------------------------------------------------------------
+
+| Button/Action              | Screen Location                                | Repository Method | Storage Path                        | Purpose                         |
+|----------------------------|-----------------------------------------------|-------------------|-------------------------------------|---------------------------------|
+| Image Picker Icon          | presentation/customer/chat/ChatScreen.kt      | uploadImage()     | /chat_images/{convId}/{uuid}.jpg    | Upload chat image               |
+| Image Picker Icon          | presentation/secretary/chat/SecretaryChatScreen.kt | uploadImage() | /chat_images/{convId}/{uuid}.jpg    | Upload chat image               |
+
+================================================================================
+================================================================================
+                              FIREBASE STRUCTURE SUMMARY
+================================================================================
+================================================================================
+
+FIRESTORE (Cloud Firestore):
+├── users/                          (Collection)
+│   └── {userId}/                   (Document - Auth UID)
+│       ├── uid: String
+│       ├── email: String
+│       ├── role: String
+│       ├── name: String
+│       ├── phoneNumber: String
+│       └── isVerified: Boolean
+│
+├── vehicles/                       (Collection)
+│   └── {vehicleId}/                (Document - Auto ID)
+│       ├── customerId: String
+│       ├── model: String
+│       ├── plateNumber: String
+│       ├── year: String
+│       └── dateRegistered: Long
+│
+├── inventory/                      (Collection)
+│   └── {itemId}/                   (Document - Auto ID)
+│       ├── name: String
+│       ├── category: String
+│       ├── quantity: Int
+│       ├── price: Double
+│       └── lastUpdated: Date
+│
+└── complaints/                     (Collection)
+    └── {complaintId}/              (Document - Auto ID)
+        ├── userId: String
+        ├── customerName: String
+        ├── subject: String
+        ├── message: String
+        ├── status: String
+        ├── dateSubmitted: Date
+        ├── reply: String?
+        └── replyDate: Date?
+
+REALTIME DATABASE (RTDB):
+├── appointments/
+│   └── {appointmentId}/            (Push key)
+│       ├── userId: String
+│       ├── customerName: String
+│       ├── vehicleModel: String
+│       ├── plateNumber: String
+│       ├── serviceType: String
+│       ├── notes: String
+│       ├── status: String
+│       ├── dateScheduled: Date
+│       ├── timeSlot: String
+│       ├── price: Double
+│       ├── createdAt: Date
+│       └── rejectionReason: String
+│
+├── conversations/
+│   └── {conversationId}/           (Push key)
+│       ├── customerId: String
+│       ├── customerName: String
+│       ├── subject: String
+│       ├── lastMessage: String
+│       ├── lastMessageTime: Long
+│       ├── lastSenderType: String
+│       ├── status: String
+│       └── createdAt: Long
+│
+├── messages/
+│   └── {conversationId}/
+│       └── {messageId}/            (Push key)
+│           ├── conversationId: String
+│           ├── senderId: String
+│           ├── senderType: String
+│           ├── senderName: String
+│           ├── message: String
+│           ├── imageUrl: String?
+│           ├── timestamp: Long
+│           └── status: String
+│
+└── inquiries/
+    └── {inquiryId}/                (Push key)
+        ├── userId: String
+        ├── customerName: String
+        ├── subject: String
+        ├── message: String
+        ├── status: String
+        ├── dateSubmitted: Long
+        ├── reply: String?
+        └── replyDate: Long?
+
+FIREBASE STORAGE:
+└── chat_images/
+    └── {conversationId}/
+        └── {uuid}.jpg
+
+================================================================================
+                              FILE LOCATIONS SUMMARY
+================================================================================
+
+DOMAIN LAYER (Model Classes):
+- domain/model/Appointment.kt
+- domain/model/Vehicle.kt
+- domain/model/User.kt
+- domain/model/ChatConversation.kt
+- domain/model/ChatMessage.kt
+- domain/model/InventoryItem.kt
+- domain/model/Inquiry.kt
+- domain/model/Complaint.kt
+
+DOMAIN LAYER (Repository Interfaces):
+- domain/repository/AppointmentsRepository.kt
+- domain/repository/VehiclesRepository.kt
+- domain/repository/UserRepository.kt
+- domain/repository/ChatRepository.kt
+- domain/repository/InventoryRepository.kt
+- domain/repository/InquiriesRepository.kt
+- domain/repository/ComplaintsRepository.kt
+
+DATA LAYER (Repository Implementations):
+- data/repository/AppointmentsRepositoryImpl.kt
+- data/repository/VehiclesRepositoryImpl.kt
+- data/repository/UserRepositoryImpl.kt
+- data/repository/ChatRepositoryImpl.kt
+- data/repository/InventoryRepositoryImpl.kt
+- data/repository/InquiriesRepositoryImpl.kt
+- data/repository/ComplaintsRepositoryImpl.kt
+- data/repository/ImageUploadRepository.kt
+
+================================================================================
+                              END OF DOCUMENT
+================================================================================

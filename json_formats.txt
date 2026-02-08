@@ -1,0 +1,154 @@
+JSON Data Formats for ZyberAuto (Offline Mode)
+==============================================
+
+This document defines the expected JSON structure for each local data file stored in `json_storage/`.
+All files contain a JSON Array of objects.
+
+1. users.json
+-------------
+Stores user profiles and authentication details.
+Password is plain text for this local draft.
+
+```json
+[
+  {
+    "uid": "user_123456789",
+    "email": "juan@example.com",
+    "role": "CUSTOMER",  // Options: "CUSTOMER", "SECRETARY", "MECHANIC"
+    "name": "Juan Dela Cruz",
+    "phoneNumber": "+639171234567",
+    "isVerified": true
+  }
+]
+```
+
+2. inventory.json
+-----------------
+Stores parts and items available in the shop.
+
+```json
+[
+  {
+    "id": "item_001",
+    "name": "Synthetic Motor Oil 1L",
+    "category": "Fluids",
+    "quantity": 50,
+    "price": 450.00,
+    "unit": "bottle",
+    "reorderLevel": 10,
+    "lastUpdated": "Feb 5, 2026, 10:00:00 AM" // Standard Date format or Timestamp
+  }
+]
+```
+
+3. vehicles.json
+----------------
+Stores cars registered by customers.
+
+```json
+[
+  {
+    "id": "car_001",
+    "customerId": "user_123456789",
+    "model": "Toyota Vios",
+    "vehicleType": "Sedan", // Options: "Sedan", "SUV", "Van/Minivan"
+    "plateNumber": "ABC 1234",
+    "year": "2022",
+    "dateRegistered": 1707094200000 // Long Timestamp
+  }
+]
+```
+
+4. appointments.json
+--------------------
+Stores service bookings.
+
+```json
+[
+  {
+    "id": "appt_001",
+    "userId": "user_123456789",
+    "customerName": "Juan Dela Cruz",
+    "plateNumber": "ABC 1234",
+    "vehicleModel": "Toyota Vios",
+    "vehicleType": "Sedan",
+    "serviceType": "Change Oil",
+    "status": "PENDING", // Options: "PENDING", "ACCEPTED", "DECLINED", "COMPLETED"
+    "dateScheduled": "Feb 10, 2026, 8:00:00 AM",
+    "timeSlot": "08:00 AM",
+    "timeSlotEnd": "09:00 AM",
+    "estimatedDurationMinutes": 60,
+    "price": 0.0,
+    "createdAt": "Feb 5, 2026, 12:00:00 PM"
+  }
+]
+```
+
+5. chats.json (Conversations)
+-----------------------------
+Stores the list of active chat threads.
+
+```json
+[
+  {
+    "id": "conv_001",
+    "customerId": "user_123456789",
+    "customerName": "Juan Dela Cruz",
+    "subject": "Inquiry about tires",
+    "lastMessage": "Is this available?",
+    "lastMessageTime": 1707094200000,
+    "lastSenderType": "CUSTOMER",
+    "status": "ACTIVE"
+  }
+]
+```
+
+6. messages.json
+----------------
+Stores individual chat messages.
+
+```json
+[
+  {
+    "id": "msg_001",
+    "conversationId": "conv_001",
+    "senderId": "user_123456789",
+    "senderType": "CUSTOMER", // "CUSTOMER" or "STAFF"
+    "senderName": "Juan Dela Cruz",
+    "message": "Is this available?",
+    "imageUrl": "", // Optional
+    "timestamp": 1707094200000,
+    "status": "read"
+  }
+]
+```
+
+7. complaints.json
+------------------
+Stores user complaints.
+
+```json
+[
+  {
+    "id": "complaint_001",
+    "userId": "user_123456789",
+    "message": "Service was slow.",
+    "status": "PENDING"
+  }
+]
+```
+
+8. inquiries.json
+-----------------
+Stores general inquiries.
+
+```json
+[
+  {
+    "id": "inquiry_001",
+    "userId": "user_123456789",
+    "message": "Do you accept credit cards?",
+    "status": "PENDING"
+  }
+]
+```

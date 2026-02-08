@@ -1,0 +1,18 @@
+[
+    {
+        "id": "appt_001",
+        "userId": "user_123456789",
+        "customerName": "Juan Dela Cruz",
+        "plateNumber": "ABC 1234",
+        "vehicleModel": "Toyota Vios",
+        "vehicleType": "Sedan",
+        "serviceType": "Change Oil",
+        "status": "PENDING",
+        "dateScheduled": "Feb 10, 2026, 8:00:00 AM",
+        "timeSlot": "08:00 AM",
+        "timeSlotEnd": "09:00 AM",
+        "estimatedDurationMinutes": 60,
+        "price": 0.0,
+        "createdAt": "Feb 5, 2026, 12:00:00 PM"
+    }
+]

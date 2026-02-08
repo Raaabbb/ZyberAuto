@@ -1,52 +1,103 @@
 package com.example.zyberauto.data.repository
 
+import com.example.zyberauto.data.local.LocalDataHelper
 import com.example.zyberauto.domain.model.InventoryItem
+import com.example.zyberauto.domain.model.PartDeduction
 import com.example.zyberauto.domain.repository.InventoryRepository
-import com.google.firebase.firestore.FirebaseFirestore
-import com.google.firebase.firestore.Query
-import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.callbackFlow
-import kotlinx.coroutines.tasks.await
+import kotlinx.coroutines.flow.flow
+import java.util.Date
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
 class InventoryRepositoryImpl @Inject constructor(
-    private val firestore: FirebaseFirestore
+    private val localDataHelper: LocalDataHelper
 ) : InventoryRepository {
 
-    override fun getInventory(): Flow<List<InventoryItem>> = callbackFlow {
-        val listener = firestore.collection("inventory")
-            .orderBy("name", Query.Direction.ASCENDING)
-            .addSnapshotListener { snapshot, error ->
-                if (error != null) {
-                    close(error)
-                    return@addSnapshotListener
-                }
-                
-                val items = snapshot?.toObjects(InventoryItem::class.java) ?: emptyList()
-                trySend(items)
-            }
-        
-        awaitClose { listener.remove() }
+    private val inventoryFile = "inventory.json"
+
+    override fun getInventory(): Flow<List<InventoryItem>> = flow {
+        val items = localDataHelper.readList(inventoryFile, InventoryItem::class.java)
+        // Sort by name ascending
+        emit(items.sortedBy { it.name })
     }
 
     override suspend fun addItem(item: InventoryItem) {
-        // ID is auto-generated if empty, or we can let Firestore generate it by using .add()
-        // If the item passed has no ID (which it shouldn't for new items usually), we use .add()
-        // But to be consistent with update, we might want to manually set IDs or just use .add()
-        // Since @DocumentId is used, typically we just .add(item) and Firestore handles it.
-        firestore.collection("inventory").add(item).await()
+        // If ID is missing, generate one (basic UUID or Timestamp)
+        val finalItem = if (item.id.isBlank()) {
+            item.copy(id = System.currentTimeMillis().toString(), lastUpdated = Date())
+        } else {
+            item.copy(lastUpdated = Date())
+        }
+        localDataHelper.addItem(inventoryFile, finalItem, InventoryItem::class.java)
     }
 
     override suspend fun updateItem(item: InventoryItem) {
         if (item.id.isNotBlank()) {
-            firestore.collection("inventory").document(item.id).set(item).await()
+            val itemWithTimestamp = item.copy(lastUpdated = Date())
+            localDataHelper.updateItem(
+                inventoryFile,
+                InventoryItem::class.java,
+                predicate = { it.id == item.id },
+                update = { itemWithTimestamp }
+            )
         }
     }
 
     override suspend fun deleteItem(itemId: String) {
-        firestore.collection("inventory").document(itemId).delete().await()
+        localDataHelper.removeItem(inventoryFile, InventoryItem::class.java) { it.id == itemId }
+    }
+
+    override suspend fun getItemByName(name: String): InventoryItem? {
+        val items = localDataHelper.readList(inventoryFile, InventoryItem::class.java)
+        return items.find { it.name.equals(name, ignoreCase = true) }
+    }
+
+    override suspend fun checkAvailability(partName: String, quantityNeeded: Double): Boolean {
+        val item = getItemByName(partName) ?: return false
+        return item.quantity >= quantityNeeded
+    }
+
+    override suspend fun deductStock(itemId: String, amount: Double): Result<Unit> {
+        return try {
+            localDataHelper.updateItem(
+                inventoryFile,
+                InventoryItem::class.java,
+                predicate = { it.id == itemId },
+                update = { currentItem ->
+                    val newQuantity = (currentItem.quantity - amount.toInt()).coerceAtLeast(0)
+                    currentItem.copy(quantity = newQuantity, lastUpdated = Date())
+                }
+            )
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun batchDeductStock(deductions: List<PartDeduction>): Result<Unit> {
+        return try {
+            if (deductions.isEmpty()) return Result.success(Unit)
+            
+            // In a real DB we'd use a transaction. Here we just loop sequentially.
+            // If one fails mid-way, we are in an inconsistent state, but acceptable for this local draft.
+            val items = localDataHelper.readList(inventoryFile, InventoryItem::class.java).toMutableList()
+            
+            deductions.forEach { deduction ->
+                if (deduction.itemId.isNotBlank()) {
+                    val index = items.indexOfFirst { it.id == deduction.itemId }
+                    if (index != -1) {
+                        val currentItem = items[index]
+                        val newQuantity = (currentItem.quantity - deduction.quantityNeeded.toInt()).coerceAtLeast(0)
+                        items[index] = currentItem.copy(quantity = newQuantity, lastUpdated = Date())
+                    }
+                }
+            }
+            localDataHelper.writeList(inventoryFile, items)
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
     }
 }

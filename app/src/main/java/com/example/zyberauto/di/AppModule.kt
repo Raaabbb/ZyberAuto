@@ -4,6 +4,8 @@ import com.example.zyberauto.data.repository.UserRepositoryImpl
 import com.example.zyberauto.domain.repository.UserRepository
 import com.example.zyberauto.data.repository.AppointmentsRepositoryImpl
 import com.example.zyberauto.domain.repository.AppointmentsRepository
+import com.example.zyberauto.domain.repository.InventoryRepository
+import com.example.zyberauto.domain.service.CostEstimationService
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import dagger.Module
@@ -53,12 +55,14 @@ object AppModule {
         return AppointmentsRepositoryImpl(database)
     }
 
+
+
     @Provides
     @Singleton
-    fun provideInquiriesRepository(
-        database: com.google.firebase.database.FirebaseDatabase
-    ): com.example.zyberauto.domain.repository.InquiriesRepository {
-        return com.example.zyberauto.data.repository.InquiriesRepositoryImpl(database)
+    fun provideComplaintsRepository(
+        firestore: FirebaseFirestore
+    ): com.example.zyberauto.domain.repository.ComplaintsRepository {
+        return com.example.zyberauto.data.repository.ComplaintsRepositoryImpl(firestore)
     }
 
     @Provides
@@ -67,5 +71,29 @@ object AppModule {
         firestore: FirebaseFirestore
     ): com.example.zyberauto.domain.repository.InventoryRepository {
         return com.example.zyberauto.data.repository.InventoryRepositoryImpl(firestore)
+    }
+
+    @Provides
+    @Singleton
+    fun provideVehiclesRepository(
+        firestore: com.google.firebase.firestore.FirebaseFirestore
+    ): com.example.zyberauto.domain.repository.VehiclesRepository {
+        return com.example.zyberauto.data.repository.VehiclesRepositoryImpl(firestore)
+    }
+
+    @Provides
+    @Singleton
+    fun provideChatRepository(
+        database: com.google.firebase.database.FirebaseDatabase
+    ): com.example.zyberauto.domain.repository.ChatRepository {
+        return com.example.zyberauto.data.repository.ChatRepositoryImpl(database)
+    }
+
+    @Provides
+    @Singleton
+    fun provideCostEstimationService(
+        inventoryRepository: InventoryRepository
+    ): CostEstimationService {
+        return CostEstimationService(inventoryRepository)
     }
 }

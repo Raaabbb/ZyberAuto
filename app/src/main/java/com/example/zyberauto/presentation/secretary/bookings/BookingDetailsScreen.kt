@@ -1,5 +1,6 @@
 package com.example.zyberauto.presentation.secretary.bookings
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -24,6 +25,7 @@ fun BookingDetailsScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var showRejectDialog by remember { mutableStateOf(false) }
+    var showAssignDialog by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -107,7 +109,17 @@ fun BookingDetailsScreen(
                         // Schedule
                         DetailSection(title = "Schedule") {
                             DetailRow("Date", java.text.SimpleDateFormat("MMMM dd, yyyy").format(booking.dateScheduled))
-                            DetailRow("Time", booking.timeSlot)
+                            // Show time range if end time is available
+                            val timeDisplay = if (booking.timeSlotEnd.isNotBlank()) {
+                                "${booking.timeSlot} - ${booking.timeSlotEnd}"
+                            } else {
+                                booking.timeSlot
+                            }
+                            DetailRow("Time", timeDisplay)
+                            // Show estimated duration if available
+                            if (booking.estimatedDurationMinutes > 0) {
+                                DetailRow("Est. Duration", com.example.zyberauto.common.AppConstants.formatDuration(booking.estimatedDurationMinutes))
+                            }
                         }
                         
                         Spacer(Modifier.height(16.dp))
@@ -120,7 +132,7 @@ fun BookingDetailsScreen(
                             ) {
                                 AppButton(
                                     text = "Accept Request",
-                                    onClick = { viewModel.acceptBooking() },
+                                    onClick = { showAssignDialog = true },
                                     modifier = Modifier.weight(1f)
                                 )
                                 AppButton(
@@ -132,6 +144,17 @@ fun BookingDetailsScreen(
                             }
                         }
                     }
+                    
+                    if (showAssignDialog) {
+                        AssignMechanicDialog(
+                            onDismiss = { showAssignDialog = false },
+                            onConfirm = { mechanicId ->
+                                viewModel.acceptBooking(mechanicId)
+                                showAssignDialog = false
+                            }
+                        )
+                    }
+
                     
                     if (showRejectDialog) {
                         RejectBookingDialog(
@@ -146,6 +169,72 @@ fun BookingDetailsScreen(
             }
         }
     }
+}
+
+@Composable
+fun AssignMechanicDialog(
+    onDismiss: () -> Unit,
+    onConfirm: (Int) -> Unit
+) {
+    var selectedMechanic by remember { mutableStateOf(0) } // 0 = Auto, 1-3 = Specific
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Assign Mechanic") },
+        text = {
+            Column {
+                Text("Select a mechanic for this job:", modifier = Modifier.padding(bottom = 8.dp))
+                
+                // Auto Select Option
+                Row(
+                    verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 4.dp)
+                        .clickable { selectedMechanic = 0 }
+                ) {
+                    RadioButton(
+                        selected = selectedMechanic == 0,
+                        onClick = { selectedMechanic = 0 }
+                    )
+                    Text("Auto Select (Default)")
+                }
+                
+                // Mechanic 1-3
+                (1..3).forEach { mechanicId ->
+                    Row(
+                        verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 4.dp)
+                            .clickable { selectedMechanic = mechanicId }
+                    ) {
+                        RadioButton(
+                            selected = selectedMechanic == mechanicId,
+                            onClick = { selectedMechanic = mechanicId }
+                        )
+                        Text("Mechanic $mechanicId")
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = { 
+                    // Resolve Auto Select (0) to random 1-3
+                    val finalMechanic = if (selectedMechanic == 0) (1..3).random() else selectedMechanic
+                    onConfirm(finalMechanic) 
+                }
+            ) {
+                Text("Confirm Assignment")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        }
+    )
 }
 
 @Composable

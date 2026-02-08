@@ -8,10 +8,10 @@
             <InsightsFilterSettings>
               <option name="connection">
                 <ConnectionSetting>
-                  <option name="appId" value="com.example.zyberauto" />
-                  <option name="mobileSdkAppId" value="1:247951529635:android:91308d5b9c776158ae1116" />
-                  <option name="projectId" value="wowo-4737e9d8" />
-                  <option name="projectNumber" value="247951529635" />
+                  <option name="appId" value="PLACEHOLDER" />
+                  <option name="mobileSdkAppId" value="" />
+                  <option name="projectId" value="" />
+                  <option name="projectNumber" value="" />
                 </ConnectionSetting>
               </option>
               <option name="signal" value="SIGNAL_UNSPECIFIED" />

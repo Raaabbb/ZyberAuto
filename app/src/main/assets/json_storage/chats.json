@@ -1,0 +1,12 @@
+[
+    {
+        "id": "conv_001",
+        "customerId": "user_123456789",
+        "customerName": "Juan Dela Cruz",
+        "subject": "Inquiry about tires",
+        "lastMessage": "Is this available?",
+        "lastMessageTime": 1707094200000,
+        "lastSenderType": "CUSTOMER",
+        "status": "ACTIVE"
+    }
+]

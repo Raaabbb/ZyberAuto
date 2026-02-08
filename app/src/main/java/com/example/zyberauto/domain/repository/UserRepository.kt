@@ -8,5 +8,6 @@ interface UserRepository {
     suspend fun getUserProfile(uid: String): User?
     suspend fun updateUserProfile(user: User)
     suspend fun updateUserVerificationStatus(uid: String, isVerified: Boolean)
+    suspend fun getUserEmailByPhone(phoneNumber: String): String?
     fun getAllCustomers(): kotlinx.coroutines.flow.Flow<List<User>>
 }

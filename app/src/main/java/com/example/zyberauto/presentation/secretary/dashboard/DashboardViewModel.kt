@@ -3,7 +3,6 @@ package com.example.zyberauto.presentation.secretary.dashboard
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.zyberauto.domain.repository.AppointmentsRepository
-import com.example.zyberauto.domain.repository.InquiriesRepository
 import com.example.zyberauto.domain.repository.UserRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -13,22 +12,19 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 import java.util.Calendar
-import java.util.Date
 import javax.inject.Inject
 
 data class DashboardMetrics(
     val todaysAppointments: Int = 0,
     val totalCustomers: Int = 0,
     val totalRevenue: Double = 0.0,
-    val unreadInquiries: Int = 0,
     val monthlyRevenue: List<Float> = emptyList()
 )
 
 @HiltViewModel
 class DashboardViewModel @Inject constructor(
     private val appointmentsRepository: AppointmentsRepository,
-    private val userRepository: UserRepository,
-    private val inquiriesRepository: InquiriesRepository
+    private val userRepository: UserRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<DashboardUiState>(DashboardUiState.Loading)
@@ -44,9 +40,8 @@ class DashboardViewModel @Inject constructor(
             
             combine(
                 appointmentsRepository.getAppointments(),
-                userRepository.getAllCustomers(),
-                inquiriesRepository.getAllInquiries()
-            ) { appointments, customers, inquiries ->
+                userRepository.getAllCustomers()
+            ) { appointments, customers ->
                 
                 // Calculate Today's Appointments
                 val calendar = Calendar.getInstance()
@@ -62,9 +57,6 @@ class DashboardViewModel @Inject constructor(
                 val completedAppointments = appointments.filter { it.status == "COMPLETED" }
                 val totalRevenue = completedAppointments.sumOf { it.price }
 
-                // Calculate Unread Inquiries
-                val unreadCount = inquiries.count { it.status == "NEW" }
-
                 // Calculate Monthly Revenue (Simplified for current year)
                 val monthlyRev = MutableList(12) { 0f }
                 completedAppointments.forEach { 
@@ -77,7 +69,6 @@ class DashboardViewModel @Inject constructor(
                     todaysAppointments = todaysCount,
                     totalCustomers = customers.size,
                     totalRevenue = totalRevenue,
-                    unreadInquiries = unreadCount,
                     monthlyRevenue = monthlyRev
                 )
             }

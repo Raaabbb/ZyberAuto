@@ -29,6 +29,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.zyberauto.presentation.common.components.AppHeader
 import com.example.zyberauto.ui.theme.BackgroundDark
 import com.example.zyberauto.ui.theme.BackgroundLight
 import com.example.zyberauto.ui.theme.PrimaryRed
@@ -63,7 +64,7 @@ fun SecretaryDashboardScreen(
                 // Main Content Scrollable
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(top = 96.dp, bottom = 100.dp, start = 16.dp, end = 16.dp),
+                    contentPadding = PaddingValues(top = 8.dp, bottom = 100.dp, start = 16.dp, end = 16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     // Header
@@ -153,9 +154,7 @@ fun SecretaryDashboardScreen(
                 }
             }
         }
-
-        // Custom Glass Header
-        GlassHeader(modifier = Modifier.align(Alignment.TopCenter))
+        // Header is now handled by SecretaryShell
     }
 }
 
@@ -349,6 +348,23 @@ fun CyberpunkTimeline(appointments: List<com.example.zyberauto.domain.model.Appo
             }
         }
 
+        // Mechanic Labels
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
+            horizontalArrangement = Arrangement.End
+        ) {
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                (1..3).forEach { mechanic ->
+                    Text(
+                        text = "Mechanic $mechanic",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = Color(0xFF64748B),
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+            }
+        }
+
         if (appointments.isEmpty()) {
             // Empty state
             Box(
@@ -417,17 +433,21 @@ fun CyberpunkTimeline(appointments: List<com.example.zyberauto.domain.model.Appo
                             }
                         }
 
-                        // Create bay data from appointments (max 3 bays)
-                        val rowEvents = listOf(
-                            hourAppointments.getOrNull(0)?.let { "${it.vehicleModel}" },
-                            hourAppointments.getOrNull(1)?.let { "${it.vehicleModel}" },
-                            hourAppointments.getOrNull(2)?.let { "${it.vehicleModel}" }
-                        )
+                        // Group appointments by assigned mechanic (3 rows for Mechanic 1-3)
+                        val rowEvents = (1..3).map { mechanicNum ->
+                            hourAppointments.find { it.assignedMechanic == mechanicNum }?.let { appt ->
+                                MechanicSlotData(
+                                    vehicleModel = appt.vehicleModel,
+                                    mechanicName = "Mechanic $mechanicNum",
+                                    status = appt.status
+                                )
+                            }
+                        }
 
                         TimelineSlot(
                             time = displayTime,
                             isCurrent = isCurrentHour,
-                            bays = rowEvents
+                            mechanicSlots = rowEvents
                         )
                     }
                 }
@@ -436,6 +456,13 @@ fun CyberpunkTimeline(appointments: List<com.example.zyberauto.domain.model.Appo
     }
 }
 
+// Data class for mechanic slot display
+data class MechanicSlotData(
+    val vehicleModel: String,
+    val mechanicName: String,
+    val status: String
+)
+
 // Helper function to handle hour overflow
 fun getCyberpunkTime(hour: Int): java.time.LocalTime {
     val h = ((hour % 24) + 24) % 24
@@ -443,7 +470,7 @@ fun getCyberpunkTime(hour: Int): java.time.LocalTime {
 }
 
 @Composable
-fun TimelineSlot(time: String, isCurrent: Boolean, bays: List<String?>) {
+fun TimelineSlot(time: String, isCurrent: Boolean, mechanicSlots: List<MechanicSlotData?>) {
     Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.width(if (isCurrent) 220.dp else 160.dp)) {
         Text(
             time, 
@@ -458,11 +485,11 @@ fun TimelineSlot(time: String, isCurrent: Boolean, bays: List<String?>) {
         
         Spacer(Modifier.height(16.dp))
 
-        // 3 Rows / Bays
+        // 3 Rows for Mechanic 1-3
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            bays.forEachIndexed { i, event ->
-                 if (event != null) {
-                    // Active Card
+            mechanicSlots.forEachIndexed { i, slotData ->
+                 if (slotData != null) {
+                    // Active Card - appointment assigned to this mechanic
                      Card(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -473,25 +500,52 @@ fun TimelineSlot(time: String, isCurrent: Boolean, bays: List<String?>) {
                     ) {
                         Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.SpaceBetween) {
                             Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
-                                Text(if (isCurrent) "IN PROGRESS" else "SCHEDULED", color = if (isCurrent) PrimaryRed else Color(0xFF0F172A).copy(alpha=0.5f), fontWeight = FontWeight.Black, style = MaterialTheme.typography.labelSmall, fontSize = 8.sp)
-                                if(isCurrent) Icon(Icons.Default.Bolt, null, tint = PrimaryRed, modifier = Modifier.size(16.dp))
+                                Text(
+                                    when {
+                                        slotData.status == "COMPLETED" -> "COMPLETED"
+                                        isCurrent -> "IN PROGRESS"
+                                        else -> "SCHEDULED"
+                                    }, 
+                                    color = when {
+                                        slotData.status == "COMPLETED" -> Color(0xFF4CAF50)
+                                        isCurrent -> PrimaryRed 
+                                        else -> Color(0xFF0F172A).copy(alpha=0.5f)
+                                    }, 
+                                    fontWeight = FontWeight.Black, 
+                                    style = MaterialTheme.typography.labelSmall, 
+                                    fontSize = 8.sp
+                                )
+                                if(isCurrent && slotData.status != "COMPLETED") Icon(Icons.Default.Bolt, null, tint = PrimaryRed, modifier = Modifier.size(16.dp))
                             }
-                            Text(event, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = Color(0xFF0F172A), fontSize = 14.sp)
+                            Text(slotData.vehicleModel, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = Color(0xFF0F172A), fontSize = 14.sp)
                             
-                            if (isCurrent) {
+                            if (isCurrent && slotData.status != "COMPLETED") {
                                 // Mini Progress
                                 Box(modifier = Modifier.fillMaxWidth().height(4.dp).background(Color.Black.copy(alpha=0.1f), CircleShape)) {
                                     Box(modifier = Modifier.fillMaxWidth(0.7f).fillMaxHeight().background(PrimaryRed, CircleShape))
                                 }
                             } else {
                                 // Mechanic Name
-                                Text("Bay ${i + 1}", style = MaterialTheme.typography.labelSmall, color = Color(0xFF0F172A).copy(alpha = 0.4f))
+                                Text(slotData.mechanicName, style = MaterialTheme.typography.labelSmall, color = Color(0xFF0F172A).copy(alpha = 0.6f), fontWeight = FontWeight.Medium)
                             }
                         }
                     }
                  } else {
-                     // Empty Slot (Invisible/Transparent) - Maintains layout height
-                     Box(modifier = Modifier.fillMaxWidth().height(110.dp)) // Transparent
+                     // Empty Slot - no appointment for this mechanic at this hour
+                     Box(
+                         modifier = Modifier
+                             .fillMaxWidth()
+                             .height(110.dp)
+                             .border(1.dp, Color(0xFFE2E8F0), RoundedCornerShape(12.dp))
+                             .background(Color(0xFFF8FAFC), RoundedCornerShape(12.dp)),
+                         contentAlignment = Alignment.Center
+                     ) {
+                         Text(
+                             "Mechanic ${i + 1}",
+                             style = MaterialTheme.typography.labelSmall,
+                             color = Color(0xFF94A3B8)
+                         )
+                     }
                  }
             }
         }

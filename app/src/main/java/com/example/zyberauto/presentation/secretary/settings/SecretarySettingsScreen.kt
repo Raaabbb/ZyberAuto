@@ -30,15 +30,25 @@ fun SecretarySettingsScreen(
     
     var showChangeEmailDialog by remember { mutableStateOf(false) }
     var newEmail by remember { mutableStateOf("") }
+    
+    // Re-login dialog state
+    var showReloginDialog by remember { mutableStateOf(false) }
+    var reloginMessage by remember { mutableStateOf("") }
 
-    LaunchedEffect(uiState.message, uiState.error) {
-        uiState.message?.let {
-            snackbarHostState.showSnackbar(it)
-            viewModel.clearMessages()
-        }
-        uiState.error?.let {
-            snackbarHostState.showSnackbar(it)
-            viewModel.clearMessages()
+    LaunchedEffect(uiState.message, uiState.error, uiState.requiresRelogin) {
+        // Check if re-login is required first
+        if (uiState.requiresRelogin && uiState.reloginReason != null) {
+            reloginMessage = uiState.reloginReason!!
+            showReloginDialog = true
+        } else {
+            uiState.message?.let {
+                snackbarHostState.showSnackbar(it)
+                viewModel.clearMessages()
+            }
+            uiState.error?.let {
+                snackbarHostState.showSnackbar(it)
+                viewModel.clearMessages()
+            }
         }
     }
 
@@ -90,7 +100,10 @@ fun SecretarySettingsScreen(
             
             // Logout Section
             Button(
-                onClick = onLogout,
+                onClick = {
+                    viewModel.logout()
+                    onLogout()
+                },
                 modifier = Modifier.fillMaxWidth(),
                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
             ) {
@@ -199,6 +212,28 @@ fun SecretarySettingsScreen(
             dismissButton = {
                 TextButton(onClick = { showChangeEmailDialog = false }) {
                     Text("Cancel")
+                }
+            }
+        )
+    }
+
+    // Re-login Required Dialog
+    if (showReloginDialog) {
+        AlertDialog(
+            onDismissRequest = { }, // Cannot dismiss, must acknowledge
+            title = { Text("Re-login Required") },
+            text = {
+                Text(reloginMessage)
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showReloginDialog = false
+                        viewModel.logout()
+                        onLogout()
+                    }
+                ) {
+                    Text("OK, Log Out")
                 }
             }
         )

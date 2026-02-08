@@ -1,0 +1,172 @@
+[
+    {
+        "id": "inv_001",
+        "name": "Oil Filter",
+        "category": "Filters",
+        "unitPrice": 250.0,
+        "stockQuantity": 50,
+        "unit": "piece",
+        "reorderLevel": 10,
+        "lastUpdated": 1738665600000
+    },
+    {
+        "id": "inv_002",
+        "name": "Engine Oil",
+        "category": "Fluids",
+        "unitPrice": 450.0,
+        "stockQuantity": 100,
+        "unit": "liter",
+        "reorderLevel": 20,
+        "lastUpdated": 1738665600000
+    },
+    {
+        "id": "inv_003",
+        "name": "Brake Fluid",
+        "category": "Fluids",
+        "unitPrice": 200.0,
+        "stockQuantity": 40,
+        "unit": "liter",
+        "reorderLevel": 10,
+        "lastUpdated": 1738665600000
+    },
+    {
+        "id": "inv_004",
+        "name": "Brake Pads Set",
+        "category": "Brakes",
+        "unitPrice": 1500.0,
+        "stockQuantity": 30,
+        "unit": "set",
+        "reorderLevel": 5,
+        "lastUpdated": 1738665600000
+    },
+    {
+        "id": "inv_005",
+        "name": "Car Shampoo",
+        "category": "Detailing",
+        "unitPrice": 180.0,
+        "stockQuantity": 60,
+        "unit": "liter",
+        "reorderLevel": 15,
+        "lastUpdated": 1738665600000
+    },
+    {
+        "id": "inv_006",
+        "name": "Wax Polish",
+        "category": "Detailing",
+        "unitPrice": 320.0,
+        "stockQuantity": 40,
+        "unit": "liter",
+        "reorderLevel": 10,
+        "lastUpdated": 1738665600000
+    },
+    {
+        "id": "inv_007",
+        "name": "Interior Cleaner",
+        "category": "Detailing",
+        "unitPrice": 150.0,
+        "stockQuantity": 50,
+        "unit": "liter",
+        "reorderLevel": 10,
+        "lastUpdated": 1738665600000
+    },
+    {
+        "id": "inv_008",
+        "name": "Spark Plugs Set",
+        "category": "Engine Parts",
+        "unitPrice": 800.0,
+        "stockQuantity": 25,
+        "unit": "set",
+        "reorderLevel": 5,
+        "lastUpdated": 1738665600000
+    },
+    {
+        "id": "inv_009",
+        "name": "Air Filter",
+        "category": "Filters",
+        "unitPrice": 350.0,
+        "stockQuantity": 45,
+        "unit": "piece",
+        "reorderLevel": 10,
+        "lastUpdated": 1738665600000
+    },
+    {
+        "id": "inv_010",
+        "name": "Fuel Filter",
+        "category": "Filters",
+        "unitPrice": 280.0,
+        "stockQuantity": 35,
+        "unit": "piece",
+        "reorderLevel": 8,
+        "lastUpdated": 1738665600000
+    },
+    {
+        "id": "inv_011",
+        "name": "AC Refrigerant",
+        "category": "AC Parts",
+        "unitPrice": 600.0,
+        "stockQuantity": 30,
+        "unit": "can",
+        "reorderLevel": 8,
+        "lastUpdated": 1738665600000
+    },
+    {
+        "id": "inv_012",
+        "name": "AC Filter",
+        "category": "AC Parts",
+        "unitPrice": 220.0,
+        "stockQuantity": 40,
+        "unit": "piece",
+        "reorderLevel": 10,
+        "lastUpdated": 1738665600000
+    },
+    {
+        "id": "inv_013",
+        "name": "Distilled Water",
+        "category": "Fluids",
+        "unitPrice": 50.0,
+        "stockQuantity": 80,
+        "unit": "liter",
+        "reorderLevel": 20,
+        "lastUpdated": 1738665600000
+    },
+    {
+        "id": "inv_014",
+        "name": "Engine Coolant",
+        "category": "Fluids",
+        "unitPrice": 280.0,
+        "stockQuantity": 50,
+        "unit": "liter",
+        "reorderLevel": 12,
+        "lastUpdated": 1738665600000
+    },
+    {
+        "id": "inv_015",
+        "name": "Transmission Fluid",
+        "category": "Fluids",
+        "unitPrice": 380.0,
+        "stockQuantity": 35,
+        "unit": "liter",
+        "reorderLevel": 10,
+        "lastUpdated": 1738665600000
+    },
+    {
+        "id": "inv_016",
+        "name": "Power Steering Fluid",
+        "category": "Fluids",
+        "unitPrice": 220.0,
+        "stockQuantity": 40,
+        "unit": "liter",
+        "reorderLevel": 10,
+        "lastUpdated": 1738665600000
+    },
+    {
+        "id": "inv_017",
+        "name": "Windshield Washer Fluid",
+        "category": "Fluids",
+        "unitPrice": 120.0,
+        "stockQuantity": 70,
+        "unit": "liter",
+        "reorderLevel": 15,
+        "lastUpdated": 1738665600000
+    }
+]

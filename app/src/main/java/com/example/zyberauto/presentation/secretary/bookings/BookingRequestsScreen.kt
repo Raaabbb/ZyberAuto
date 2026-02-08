@@ -3,6 +3,8 @@ package com.example.zyberauto.presentation.secretary.bookings
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Chat
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -21,11 +23,13 @@ import com.example.zyberauto.presentation.common.components.StatusType
 @Composable
 fun BookingRequestsScreen(
     onNavigateToDetails: (String) -> Unit,
+    onMessageCustomer: (customerId: String, customerName: String) -> Unit = { _, _ -> },
+    initialFilter: String = "All",
     viewModel: BookingRequestsViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var searchQuery by remember { mutableStateOf("") }
-    var selectedFilter by remember { mutableStateOf("All") }
+    var selectedFilter by remember { mutableStateOf(initialFilter) }
     var showRejectDialog by remember { mutableStateOf<Appointment?>(null) }
 
     Scaffold { padding ->
@@ -97,7 +101,10 @@ fun BookingRequestsScreen(
                                     appointment = appointment,
                                     onAccept = { viewModel.acceptBooking(appointment) },
                                     onReject = { showRejectDialog = appointment },
-                                    onClick = { onNavigateToDetails(appointment.id) }
+                                    onClick = { onNavigateToDetails(appointment.id) },
+                                    onMessageClick = { appt ->
+                                        onMessageCustomer(appt.userId, appt.customerName)
+                                    }
                                 )
                             }
                         }
@@ -123,7 +130,8 @@ fun BookingRequestCard(
     appointment: Appointment,
     onAccept: () -> Unit,
     onReject: () -> Unit,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    onMessageClick: (Appointment) -> Unit = {}
 ) {
     Card(
         onClick = onClick,
@@ -173,6 +181,19 @@ fun BookingRequestCard(
                         modifier = Modifier.weight(1f),
                         containerColor = MaterialTheme.colorScheme.error
                     )
+                }
+            }
+            
+            // Message Now button - only show if appointment has userId (registered customer)
+            if (appointment.userId.isNotBlank()) {
+                Spacer(modifier = Modifier.height(8.dp))
+                OutlinedButton(
+                    onClick = { onMessageClick(appointment) },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Icon(Icons.Default.Chat, contentDescription = null, modifier = Modifier.size(16.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text("Message Now")
                 }
             }
         }
